@@ -54,4 +54,8 @@ describe("validateReservation", () => {
     const existing = [{ room_id: 2, start_at: 1800, end_at: 5400 }];
     expect(validateReservation(valid, existing)).toEqual({ ok: true });
   });
+  test("room_id 가 NaN이면 거절", () => {
+    const r = validateReservation({ ...valid, room_id: NaN }, []);
+    expect(r.ok).toBe(false);
+  });
 });

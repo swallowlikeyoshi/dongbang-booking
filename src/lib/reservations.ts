@@ -31,6 +31,9 @@ export function validateReservation(
   input: NewReservationInput,
   existing: ExistingReservation[],
 ): ValidationResult {
+  if (!Number.isFinite(input.room_id)) {
+    return { ok: false, error: "유효하지 않은 방입니다." };
+  }
   if (!(TEAMS as readonly string[]).includes(input.team)) {
     return { ok: false, error: "유효하지 않은 팀입니다." };
   }
