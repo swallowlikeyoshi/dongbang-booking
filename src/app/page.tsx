@@ -1,13 +1,14 @@
 import SessionButtons from "@/components/SessionButtons";
-import WeekCalendar from "@/components/WeekCalendar";
+import HomeClient from "@/components/HomeClient";
 import { listRooms, listReservations } from "@/lib/db/queries";
 import { weekStart, dayColumns } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
+  const { w } = await searchParams;
   const now = Math.floor(Date.now() / 1000);
-  const ws = weekStart(now);
+  const ws = w ? Number(w) : weekStart(now);
   const weekEnd = dayColumns(ws)[6] + 24 * 3600;
   const rooms = listRooms();
   const reservations = listReservations(ws, weekEnd);
@@ -21,7 +22,7 @@ export default async function Home() {
           <SessionButtons />
         </div>
       </header>
-      <WeekCalendar rooms={rooms} reservations={reservations} weekStartTs={ws} />
+      <HomeClient rooms={rooms} reservations={reservations} weekStartTs={ws} />
     </main>
   );
 }
