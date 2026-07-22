@@ -25,6 +25,10 @@ export function listReservationsByUser(email: string): Reservation[] {
   return db.select().from(schema.reservations).where(eq(schema.reservations.user_email, email)).all();
 }
 
+export function listAllReservations(): Reservation[] {
+  return db.select().from(schema.reservations).orderBy(schema.reservations.start_at).all();
+}
+
 export function getReservation(id: number): Reservation | null {
   const rows = db.select().from(schema.reservations).where(eq(schema.reservations.id, id)).all();
   return rows[0] ?? null;
