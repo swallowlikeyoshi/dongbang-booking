@@ -33,6 +33,10 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV DATABASE_PATH=/app/data/dongbang.db
+# 시간대 고정. 컨테이너 기본값(UTC)이면 서버가 계산/포맷하는 주 시작·시각이
+# 한국 사용자 브라우저와 9시간 어긋나 현재시각 라인이 사라지고 예약 시각이
+# 잘못 표시된다. (Node 내장 ICU가 해석하므로 tzdata 패키지는 불필요)
+ENV TZ=Asia/Seoul
 
 # 시작 시 마이그레이션 + 시드 후 서버 기동
 CMD ["sh", "-c", "node --import tsx src/lib/db/migrate.ts && node server.js"]

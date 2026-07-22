@@ -18,6 +18,7 @@ npm run dev
 | ADMIN_EMAIL | 관리자 이메일(쉼표로 다중) |
 | AUTH_URL | 공개 URL. 로컬 `http://localhost:3000`, 배포 `https://<도메인>` (next-auth **v5**는 `NEXTAUTH_URL`이 아니라 `AUTH_URL`) |
 | DATABASE_PATH | SQLite 경로 (컨테이너 기본 /app/data/dongbang.db) |
+| TZ | 시간대. 이미지에 `Asia/Seoul` 기본 설정. **UTC로 두면 주 시작·예약 시각이 9시간 어긋난다** |
 
 ## 구글 OAuth 설정 (실제 로그인 활성화)
 로그인은 아래 자격증명을 발급해 `.env`에 넣어야 동작한다. (코드는 설정만 넣으면 바로 작동)
