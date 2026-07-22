@@ -15,8 +15,8 @@ const db = drizzle(sqlite);
 migrate(db, { migrationsFolder: "./drizzle" });
 
 const defaults = [
-  { id: 1, name: "동방 A" },
-  { id: 2, name: "동방 B" },
+  { id: 1, name: "공학실습동(24214)" },
+  { id: 2, name: "학생회관(03324)" },
 ];
 for (const r of defaults) {
   const existing = db.select().from(rooms).where(eq(rooms.id, r.id)).all();

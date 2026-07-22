@@ -1,8 +1,7 @@
 export function weekStart(now: number): number {
   const d = new Date(now * 1000);
   const day = d.getDay(); // 0=일
-  const diff = day === 0 ? -6 : 1 - day; // 월요일까지 이동
-  d.setDate(d.getDate() + diff);
+  d.setDate(d.getDate() - day); // 일요일까지 이동
   d.setHours(0, 0, 0, 0);
   return Math.floor(d.getTime() / 1000);
 }

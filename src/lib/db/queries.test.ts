@@ -70,4 +70,16 @@ describe("queries", () => {
     expect(r.ok).toBe(false);
     expect(q.listAllReservations()).toHaveLength(0);
   });
+
+  test("nextReservation 은 가장 이른 미래 예약을 반환", () => {
+    q.createReservation({ room_id: 1, team: "전기팀", title: "과거", start_at: 0, end_at: 1800, user_email: "a@b.com", user_name: "A" });
+    q.createReservation({ room_id: 1, team: "기계팀", title: "나중", start_at: 5400, end_at: 7200, user_email: "a@b.com", user_name: "A" });
+    q.createReservation({ room_id: 1, team: "자율차팀", title: "먼저", start_at: 3600, end_at: 5400, user_email: "a@b.com", user_name: "A" });
+    const next = q.nextReservation(1, 1000);
+    expect(next?.title).toBe("먼저");
+  });
+
+  test("nextReservation 은 예약이 없으면 null", () => {
+    expect(q.nextReservation(2, 1000)).toBeNull();
+  });
 });

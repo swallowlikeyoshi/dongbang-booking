@@ -5,7 +5,7 @@ import { TEAM_COLORS, type Team } from "@/lib/constants";
 import { dayColumns, slotRows } from "@/lib/week";
 import type { Reservation, Room } from "@/lib/db/queries";
 
-const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 type DragState = {
   roomId: number;

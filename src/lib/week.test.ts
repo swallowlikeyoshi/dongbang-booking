@@ -2,12 +2,12 @@ import { expect, test, describe } from "vitest";
 import { weekStart, dayColumns, slotRows } from "./week";
 
 describe("week helpers", () => {
-  test("weekStart 는 월요일 00:00", () => {
+  test("weekStart 는 일요일 00:00", () => {
     // 2026-07-21 화요일 12:00 KST 근처 임의 ts
     const tue = Math.floor(new Date("2026-07-21T12:00:00").getTime() / 1000);
     const ws = weekStart(tue);
     const d = new Date(ws * 1000);
-    expect(d.getDay()).toBe(1); // 월요일
+    expect(d.getDay()).toBe(0); // 일요일
     expect(d.getHours()).toBe(0);
     expect(d.getMinutes()).toBe(0);
   });

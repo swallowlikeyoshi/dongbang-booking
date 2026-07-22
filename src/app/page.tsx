@@ -1,6 +1,7 @@
 import SessionButtons from "@/components/SessionButtons";
 import HomeClient from "@/components/HomeClient";
-import { listRooms, listReservations } from "@/lib/db/queries";
+import Dashboard from "@/components/Dashboard";
+import { listRooms, listReservations, nextReservation } from "@/lib/db/queries";
 import { weekStart, dayColumns } from "@/lib/week";
 import { getSessionUser } from "@/auth";
 
@@ -15,6 +16,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
   const rooms = listRooms();
   const reservations = listReservations(ws, weekEnd);
   const sessionUser = await getSessionUser();
+  const dashboardItems = rooms.map((room) => ({
+    room,
+    next: nextReservation(room.id, now),
+  }));
 
   return (
     <main className="mx-auto max-w-6xl p-4">
@@ -26,6 +31,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
           <SessionButtons />
         </div>
       </header>
+      <Dashboard items={dashboardItems} />
       <HomeClient rooms={rooms} reservations={reservations} weekStartTs={ws} />
     </main>
   );

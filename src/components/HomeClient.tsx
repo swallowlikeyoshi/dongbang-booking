@@ -15,6 +15,7 @@ export default function HomeClient({
 }) {
   const router = useRouter();
   const [sel, setSel] = useState<{ roomId: number; startTs: number; endTs: number } | null>(null);
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(rooms[0]?.id ?? null);
 
   function go(deltaWeeks: number) {
     const w = weekStartTs + deltaWeeks * 7 * 24 * 3600;
@@ -22,6 +23,7 @@ export default function HomeClient({
   }
 
   const selRoom = sel ? rooms.find((r) => r.id === sel.roomId) : null;
+  const activeRooms = rooms.filter((r) => r.id === activeRoomId);
 
   return (
     <>
@@ -43,8 +45,24 @@ export default function HomeClient({
         </span>
       </div>
 
+      <div className="mb-3 flex gap-1 border-b border-gray-200">
+        {rooms.map((room) => (
+          <button
+            key={room.id}
+            onClick={() => setActiveRoomId(room.id)}
+            className={`-mb-px rounded-t-md border-b-2 px-3 py-1.5 text-sm font-medium ${
+              activeRoomId === room.id
+                ? "border-blue-600 bg-white text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {room.name}
+          </button>
+        ))}
+      </div>
+
       <WeekCalendar
-        rooms={rooms}
+        rooms={activeRooms}
         reservations={reservations}
         weekStartTs={weekStartTs}
         onSelect={(roomId, startTs, endTs) => setSel({ roomId, startTs, endTs })}
