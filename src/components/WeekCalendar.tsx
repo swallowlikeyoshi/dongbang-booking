@@ -98,18 +98,23 @@ export default function WeekCalendar({
       {rooms.map((room) => (
         <section key={room.id}>
           <h2 className="mb-3 text-base font-semibold text-gray-800">{room.name}</h2>
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="w-full min-w-[640px] border-collapse text-xs">
+          <div className="rounded-lg border border-gray-200 sm:overflow-x-auto">
+            <table className="w-full table-fixed border-collapse text-[10px] sm:min-w-[640px] sm:text-xs">
+              <colgroup>
+                <col className="w-7 sm:w-14" />
+              </colgroup>
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="w-14 border-b border-gray-200 p-2"></th>
+                  <th className="border-b border-gray-200 p-1 sm:p-2"></th>
                   {days.map((dTs, i) => (
                     <th
                       key={dTs}
-                      className="border-b border-l border-gray-200 p-2 text-center font-medium text-gray-600"
+                      className="border-b border-l border-gray-200 p-0.5 text-center font-medium text-gray-600 sm:p-2"
                     >
-                      <span className="text-gray-800">{DAYS[i]}</span>
-                      <span className="ml-1 text-gray-400">{new Date(dTs * 1000).getDate()}</span>
+                      <div className="flex flex-col items-center leading-tight sm:flex-row sm:justify-center sm:gap-1">
+                        <span className="text-gray-800">{DAYS[i]}</span>
+                        <span className="text-gray-400">{new Date(dTs * 1000).getDate()}</span>
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -117,7 +122,7 @@ export default function WeekCalendar({
               <tbody>
                 {rows.map(({ hour, min }, rowIdx) => (
                   <tr key={`${hour}:${min}`}>
-                    <td className="border-b border-gray-100 p-1 text-right align-top text-[11px] text-gray-400">
+                    <td className="border-b border-gray-100 p-0.5 text-right align-top text-[9px] text-gray-400 sm:p-1 sm:text-[11px]">
                       {min === 0 ? `${String(hour).padStart(2, "0")}:00` : ""}
                     </td>
                     {days.map((dTs) => {
@@ -136,12 +141,12 @@ export default function WeekCalendar({
                         return (
                           <td
                             key={dTs}
-                            className={`h-6 border-b border-l border-gray-100 ${
+                            className={`h-5 max-w-0 overflow-hidden border-b border-l border-gray-100 sm:h-6 ${
                               TEAM_COLORS[r.team as Team] ?? "bg-slate-500"
                             } text-white`}
                           >
                             {isStart ? (
-                              <span className="block truncate px-1 text-[11px] leading-6">
+                              <span className="block truncate px-0.5 text-[9px] leading-5 sm:px-1 sm:text-[11px] sm:leading-6">
                                 {r.team}
                                 {r.title ? ` · ${r.title}` : ""}
                               </span>
@@ -157,7 +162,7 @@ export default function WeekCalendar({
                           key={dTs}
                           onPointerDown={(e) => beginDrag(e, room.id, dTs, rowIdx)}
                           onPointerEnter={() => extendDrag(room.id, dTs, rowIdx)}
-                          className={`h-6 touch-none border-b border-l border-gray-100 cursor-pointer select-none ${
+                          className={`h-5 max-w-0 touch-none overflow-hidden border-b border-l border-gray-100 cursor-pointer select-none sm:h-6 ${
                             isSelected ? "bg-blue-100" : "hover:bg-gray-50"
                           }`}
                         >

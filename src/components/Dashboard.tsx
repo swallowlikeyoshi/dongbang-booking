@@ -19,26 +19,38 @@ function fmt(ts: number): string {
 export default function Dashboard({ items }: { items: RoomNext[] }) {
   return (
     <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
-      <div className="space-y-1.5">
+      <div className="divide-y divide-gray-200 sm:divide-y-0 sm:space-y-1.5">
         {items.map(({ room, next }) => (
-          <div key={room.id} className="flex items-center gap-2 text-sm">
-            {next && (
-              <span
-                className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                  TEAM_COLORS[next.team as Team] ?? "bg-slate-500"
-                }`}
-              />
-            )}
-            <span className="font-medium text-gray-800">{room.name}</span>
-            <span className="text-gray-400">다음 예약</span>
-            {next ? (
-              <span className="text-gray-600">
-                · {fmt(next.start_at)} — {next.team}
-                {next.title ? ` · ${next.title}` : ""}
-              </span>
-            ) : (
-              <span className="text-gray-400">· 예약 없음</span>
-            )}
+          <div
+            key={room.id}
+            className="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-2 sm:py-0"
+          >
+            <div className="flex shrink-0 items-center gap-2">
+              {next ? (
+                <span
+                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                    TEAM_COLORS[next.team as Team] ?? "bg-slate-500"
+                  }`}
+                />
+              ) : (
+                <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-gray-300" />
+              )}
+              <span className="whitespace-nowrap text-sm font-medium text-gray-800">{room.name}</span>
+            </div>
+            <div className="pl-4 text-xs leading-snug text-gray-500 sm:pl-0 sm:text-sm">
+              {next ? (
+                <>
+                  <span className="text-gray-400">다음 예약</span>
+                  <span className="text-gray-600">
+                    {" "}
+                    · {fmt(next.start_at)} — {next.team}
+                    {next.title ? ` · ${next.title}` : ""}
+                  </span>
+                </>
+              ) : (
+                <span className="text-gray-400">예약 없음</span>
+              )}
+            </div>
           </div>
         ))}
       </div>
