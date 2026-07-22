@@ -42,3 +42,32 @@ docker run -d --restart unless-stopped -p 3000:3000 \
   ghcr.io/<owner>/dongbang-booking:latest
 ```
 main 브랜치에 푸시하면 GitHub Actions가 arm64/amd64 이미지를 GHCR로 자동 푸시한다.
+
+## 운영 메모
+
+### `.env`를 수정했다면 컨테이너를 **재생성**할 것
+`docker restart`는 `--env-file`을 다시 읽지 않는다(환경변수는 컨테이너 생성 시점에 고정). 값이 반영되지 않고 조용히 예전 값으로 동작한다.
+
+```bash
+docker rm -f dongbang
+docker run -d --name dongbang --restart unless-stopped \
+  --runtime=runc \
+  -p 127.0.0.1:3001:3000 \
+  --env-file ~/dongbang/.env \
+  -v dongbang-data:/app/data \
+  ghcr.io/<owner>/dongbang-booking:latest
+```
+DB는 `dongbang-data` 볼륨에 있으므로 재생성해도 예약 데이터는 보존된다.
+
+### 젯슨(Jetson Nano)에서는 `--runtime=runc` 필수
+기본 런타임이 `nvidia`로 설정돼 있고 깨져 있어(`exec format error`) 지정하지 않으면 컨테이너가 뜨지 않는다.
+
+### `AUTH_SECRET`을 바꾸면 기존 로그인 세션이 모두 무효화된다
+사용자는 다시 로그인하면 된다. 예약 데이터에는 영향 없음.
+
+### 한 대에 여러 서비스 (Tailscale Funnel)
+Funnel은 443 / 8443 / 10000만 지원한다. 예: ksae-notice가 443을 쓰면 이 앱은 8443.
+```bash
+tailscale funnel --bg --https=8443 http://127.0.0.1:3001
+```
+`AUTH_URL`과 구글 콘솔의 리디렉션 URI에 **포트까지** 포함해야 한다.
