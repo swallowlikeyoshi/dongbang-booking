@@ -1,4 +1,4 @@
-# 동방 예약
+# HEVEN 동아리방 예약 시트
 
 HEVEN 동아리방 2개를 30분 슬롯 단위로 예약하는 셀프호스팅 웹앱. Next.js + SQLite + Auth.js(Google).
 
