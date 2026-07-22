@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { TEAM_COLORS, type Team } from "@/lib/constants";
 import { dayColumns, slotRows } from "@/lib/week";
 import type { Reservation, Room } from "@/lib/db/queries";
@@ -27,7 +27,21 @@ export default function WeekCalendar({
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
 
-  function beginDrag(roomId: number, dayTs: number, idx: number) {
+  function isOccupied(roomId: number, dayTs: number, rowIdx: number): boolean {
+    const row = rows[rowIdx];
+    if (!row) return false;
+    return resAt(roomId, dayTs, row.hour, row.min) !== undefined;
+  }
+
+  function beginDrag(
+    event: ReactPointerEvent<HTMLTableCellElement>,
+    roomId: number,
+    dayTs: number,
+    idx: number,
+  ) {
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
     const s: DragState = { roomId, dayTs, anchorIdx: idx, currentIdx: idx };
     dragRef.current = s;
     setDrag(s);
@@ -36,7 +50,18 @@ export default function WeekCalendar({
   function extendDrag(roomId: number, dayTs: number, idx: number) {
     const cur = dragRef.current;
     if (cur && cur.roomId === roomId && cur.dayTs === dayTs) {
-      const s: DragState = { ...cur, currentIdx: idx };
+      const direction = Math.sign(idx - cur.anchorIdx);
+      let target = idx;
+      if (direction !== 0) {
+        for (let i = cur.anchorIdx; i !== idx; i += direction) {
+          const nextIdx = i + direction;
+          if (isOccupied(roomId, dayTs, nextIdx)) {
+            target = i;
+            break;
+          }
+        }
+      }
+      const s: DragState = { ...cur, currentIdx: target };
       dragRef.current = s;
       setDrag(s);
     }
@@ -130,7 +155,7 @@ export default function WeekCalendar({
                       return (
                         <td
                           key={dTs}
-                          onPointerDown={() => beginDrag(room.id, dTs, rowIdx)}
+                          onPointerDown={(e) => beginDrag(e, room.id, dTs, rowIdx)}
                           onPointerEnter={() => extendDrag(room.id, dTs, rowIdx)}
                           className={`h-6 touch-none border-b border-l border-gray-100 cursor-pointer select-none ${
                             isSelected ? "bg-blue-100" : "hover:bg-gray-50"
