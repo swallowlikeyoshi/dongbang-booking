@@ -60,4 +60,14 @@ describe("queries", () => {
     q.createReservation({ room_id: 2, team: "기계팀", title: null, start_at: 1800, end_at: 3600, user_email: "z@z.com", user_name: "Z" });
     expect(q.listAllReservations()).toHaveLength(2);
   });
+
+  test("존재하지 않는 방으로 예약하면 거절되고 아무것도 삽입되지 않음", () => {
+    const r = q.createReservation({
+      room_id: 999, team: "전기팀", title: null,
+      start_at: 1800, end_at: 3600,
+      user_email: "a@b.com", user_name: "A",
+    });
+    expect(r.ok).toBe(false);
+    expect(q.listAllReservations()).toHaveLength(0);
+  });
 });

@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function Home({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
   const { w } = await searchParams;
   const now = Math.floor(Date.now() / 1000);
-  const ws = w ? Number(w) : weekStart(now);
+  const parsed = w ? Number(w) : NaN;
+  const ws = Number.isFinite(parsed) ? parsed : weekStart(now);
   const weekEnd = dayColumns(ws)[6] + 24 * 3600;
   const rooms = listRooms();
   const reservations = listReservations(ws, weekEnd);

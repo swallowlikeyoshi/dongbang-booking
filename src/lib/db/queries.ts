@@ -41,6 +41,9 @@ export function deleteReservation(id: number): void {
 export function createReservation(
   input: NewReservationInput & { user_email: string; user_name: string },
 ): { ok: true; id: number } | { ok: false; error: string } {
+  const room = db.select().from(schema.rooms).where(eq(schema.rooms.id, input.room_id)).all();
+  if (room.length === 0) return { ok: false, error: "존재하지 않는 방입니다." };
+
   // 같은 방의 겹칠 수 있는 예약만 읽어 검증
   const candidates = db
     .select({ room_id: schema.reservations.room_id, start_at: schema.reservations.start_at, end_at: schema.reservations.end_at })
