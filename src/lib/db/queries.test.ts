@@ -48,4 +48,10 @@ describe("queries", () => {
     q.renameRoom(1, "새 이름");
     expect(q.listRooms().find((x) => x.id === 1)!.name).toBe("새 이름");
   });
+
+  test("listReservationsByUser 는 본인 것만", () => {
+    q.createReservation({ room_id: 1, team: "전기팀", title: null, start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
+    q.createReservation({ room_id: 2, team: "기계팀", title: null, start_at: 1800, end_at: 3600, user_email: "z@z.com", user_name: "Z" });
+    expect(q.listReservationsByUser("a@b.com")).toHaveLength(1);
+  });
 });
