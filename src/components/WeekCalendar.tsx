@@ -133,7 +133,13 @@ function NowLineTable({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
-  const [nowLine, setNowLine] = useState<{ top: number; leftFrac: number | null } | null>(null);
+  const [nowLine, setNowLine] = useState<{ top: number; leftPx: number | null } | null>(null);
+
+  const todayStartTsForRender = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return Math.floor(d.getTime() / 1000);
+  }, []);
 
   useEffect(() => {
     function compute() {
@@ -162,10 +168,15 @@ function NowLineTable({
       const tbodyRect = tbody.getBoundingClientRect();
       const wrapRect = wrap.getBoundingClientRect();
       const tbodyOffsetInWrap = tbodyRect.top - wrapRect.top;
-      const dayIdx = days.indexOf(todayStartTs);
-      const leftFrac = dayIdx >= 0 ? (dayIdx + 1) / (days.length + 1) : null;
 
-      setNowLine({ top: tbodyOffsetInWrap + tbodyRect.height * f, leftFrac });
+      const todayCell = tbody.querySelector<HTMLTableCellElement>('td[data-today="true"]');
+      let leftPx: number | null = null;
+      if (todayCell) {
+        const cellRect = todayCell.getBoundingClientRect();
+        leftPx = cellRect.left + cellRect.width / 2 - wrapRect.left;
+      }
+
+      setNowLine({ top: tbodyOffsetInWrap + tbodyRect.height * f, leftPx });
     }
 
     compute();
@@ -217,10 +228,13 @@ function NowLineTable({
                   rowIdx >= Math.min(drag.anchorIdx, drag.currentIdx) &&
                   rowIdx <= Math.max(drag.anchorIdx, drag.currentIdx);
 
+                const isToday = dTs === todayStartTsForRender;
+
                 if (r) {
                   return (
                     <td
                       key={dTs}
+                      data-today={isToday ? "true" : undefined}
                       onClick={() => onReservationClick?.(r)}
                       className={`h-5 max-w-0 overflow-hidden border-b border-l border-gray-100 sm:h-6 ${
                         onReservationClick ? "cursor-pointer" : ""
@@ -241,6 +255,7 @@ function NowLineTable({
                 return (
                   <td
                     key={dTs}
+                    data-today={isToday ? "true" : undefined}
                     onPointerDown={(e) => beginDrag(e, room.id, dTs, rowIdx)}
                     onPointerEnter={() => extendDrag(room.id, dTs, rowIdx)}
                     className={`h-5 max-w-0 touch-none overflow-hidden border-b border-l border-gray-100 cursor-pointer select-none sm:h-6 ${
@@ -262,10 +277,10 @@ function NowLineTable({
             className="pointer-events-none absolute left-0 right-0 z-10 h-[2px] bg-red-500"
             style={{ top: nowLine.top }}
           />
-          {nowLine.leftFrac !== null && (
+          {nowLine.leftPx !== null && (
             <div
               className="pointer-events-none absolute z-10 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500"
-              style={{ top: nowLine.top, left: `${nowLine.leftFrac * 100}%` }}
+              style={{ top: nowLine.top, left: nowLine.leftPx }}
             />
           )}
         </>

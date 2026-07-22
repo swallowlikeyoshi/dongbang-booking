@@ -93,4 +93,15 @@ describe("queries", () => {
     q.createReservation({ room_id: 1, team: "전기팀", title: "이전", start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
     expect(q.currentReservation(1, 4000)).toBeNull();
   });
+
+  test("currentReservation 은 시작 경계(start_at)에서 진행 중으로 간주", () => {
+    q.createReservation({ room_id: 1, team: "전기팀", title: "경계", start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
+    const cur = q.currentReservation(1, 1800);
+    expect(cur?.title).toBe("경계");
+  });
+
+  test("currentReservation 은 종료 경계(end_at)에서는 진행 중이 아님", () => {
+    q.createReservation({ room_id: 1, team: "전기팀", title: "경계", start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
+    expect(q.currentReservation(1, 3600)).toBeNull();
+  });
 });
