@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TEAM_COLORS, type Team } from "@/lib/constants";
 import { dayColumns, slotRows } from "@/lib/week";
 import type { Reservation, Room } from "@/lib/db/queries";
@@ -25,21 +25,36 @@ export default function WeekCalendar({
   const days = dayColumns(weekStartTs);
   const rows = slotRows();
   const [drag, setDrag] = useState<DragState | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+
+  function beginDrag(roomId: number, dayTs: number, idx: number) {
+    const s: DragState = { roomId, dayTs, anchorIdx: idx, currentIdx: idx };
+    dragRef.current = s;
+    setDrag(s);
+  }
+
+  function extendDrag(roomId: number, dayTs: number, idx: number) {
+    const cur = dragRef.current;
+    if (cur && cur.roomId === roomId && cur.dayTs === dayTs) {
+      const s: DragState = { ...cur, currentIdx: idx };
+      dragRef.current = s;
+      setDrag(s);
+    }
+  }
 
   useEffect(() => {
     function handlePointerUp() {
-      setDrag((current) => {
-        if (current) {
-          const minIdx = Math.min(current.anchorIdx, current.currentIdx);
-          const maxIdx = Math.max(current.anchorIdx, current.currentIdx);
-          const first = rows[minIdx];
-          const last = rows[maxIdx];
-          const startTs = current.dayTs + first.hour * 3600 + first.min * 60;
-          const endTs = current.dayTs + last.hour * 3600 + last.min * 60 + 1800;
-          onSelect?.(current.roomId, startTs, endTs);
-        }
-        return null;
-      });
+      const cur = dragRef.current;
+      if (!cur) return;
+      const minIdx = Math.min(cur.anchorIdx, cur.currentIdx);
+      const maxIdx = Math.max(cur.anchorIdx, cur.currentIdx);
+      const first = rows[minIdx];
+      const last = rows[maxIdx];
+      const startTs = cur.dayTs + first.hour * 3600 + first.min * 60;
+      const endTs = cur.dayTs + last.hour * 3600 + last.min * 60 + 1800;
+      dragRef.current = null;
+      setDrag(null);
+      onSelect?.(cur.roomId, startTs, endTs);
     }
     window.addEventListener("pointerup", handlePointerUp);
     return () => window.removeEventListener("pointerup", handlePointerUp);
@@ -115,16 +130,8 @@ export default function WeekCalendar({
                       return (
                         <td
                           key={dTs}
-                          onPointerDown={() =>
-                            setDrag({ roomId: room.id, dayTs: dTs, anchorIdx: rowIdx, currentIdx: rowIdx })
-                          }
-                          onPointerEnter={() =>
-                            setDrag((current) =>
-                              current && current.roomId === room.id && current.dayTs === dTs
-                                ? { ...current, currentIdx: rowIdx }
-                                : current,
-                            )
-                          }
+                          onPointerDown={() => beginDrag(room.id, dTs, rowIdx)}
+                          onPointerEnter={() => extendDrag(room.id, dTs, rowIdx)}
                           className={`h-6 touch-none border-b border-l border-gray-100 cursor-pointer select-none ${
                             isSelected ? "bg-blue-100" : "hover:bg-gray-50"
                           }`}
