@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import WeekCalendar from "./WeekCalendar";
 import ReservationModal from "./ReservationModal";
 import ReservationDetailModal from "./ReservationDetailModal";
+import LoginRequiredModal from "./LoginRequiredModal";
 import type { Reservation, Room } from "@/lib/db/queries";
 
 export default function HomeClient({
@@ -20,6 +21,7 @@ export default function HomeClient({
   const [sel, setSel] = useState<{ roomId: number; startTs: number; endTs: number } | null>(null);
   const [activeRoomId, setActiveRoomId] = useState<number | null>(rooms[0]?.id ?? null);
   const [detail, setDetail] = useState<Reservation | null>(null);
+  const [loginPrompt, setLoginPrompt] = useState(false);
 
   function go(deltaWeeks: number) {
     const w = weekStartTs + deltaWeeks * 7 * 24 * 3600;
@@ -70,7 +72,13 @@ export default function HomeClient({
         rooms={activeRooms}
         reservations={reservations}
         weekStartTs={weekStartTs}
-        onSelect={(roomId, startTs, endTs) => setSel({ roomId, startTs, endTs })}
+        onSelect={(roomId, startTs, endTs) => {
+          if (!sessionEmail) {
+            setLoginPrompt(true);
+            return;
+          }
+          setSel({ roomId, startTs, endTs });
+        }}
         onReservationClick={(r) => setDetail(r)}
       />
 
@@ -84,6 +92,8 @@ export default function HomeClient({
           onCreated={() => { setSel(null); router.refresh(); }}
         />
       )}
+
+      {loginPrompt && <LoginRequiredModal onClose={() => setLoginPrompt(false)} />}
 
       {detail && detailRoom && (
         <ReservationDetailModal
