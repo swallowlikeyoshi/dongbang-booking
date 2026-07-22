@@ -82,4 +82,15 @@ describe("queries", () => {
   test("nextReservation 은 예약이 없으면 null", () => {
     expect(q.nextReservation(2, 1000)).toBeNull();
   });
+
+  test("currentReservation 은 진행 중인 예약을 반환", () => {
+    q.createReservation({ room_id: 1, team: "전기팀", title: "진행중", start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
+    const cur = q.currentReservation(1, 2400);
+    expect(cur?.title).toBe("진행중");
+  });
+
+  test("currentReservation 은 예약 사이 공백이면 null", () => {
+    q.createReservation({ room_id: 1, team: "전기팀", title: "이전", start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
+    expect(q.currentReservation(1, 4000)).toBeNull();
+  });
 });

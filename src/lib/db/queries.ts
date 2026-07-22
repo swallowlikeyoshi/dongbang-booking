@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, lt } from "drizzle-orm";
+import { and, eq, gt, gte, lt, lte } from "drizzle-orm";
 import { db, schema } from "./index";
 import { validateReservation, type NewReservationInput } from "@/lib/reservations";
 
@@ -35,6 +35,22 @@ export function nextReservation(roomId: number, afterTs: number): Reservation | 
     .from(schema.reservations)
     .where(and(eq(schema.reservations.room_id, roomId), gte(schema.reservations.start_at, afterTs)))
     .orderBy(schema.reservations.start_at)
+    .limit(1)
+    .all();
+  return rows[0] ?? null;
+}
+
+export function currentReservation(roomId: number, ts: number): Reservation | null {
+  const rows = db
+    .select()
+    .from(schema.reservations)
+    .where(
+      and(
+        eq(schema.reservations.room_id, roomId),
+        lte(schema.reservations.start_at, ts),
+        gt(schema.reservations.end_at, ts),
+      ),
+    )
     .limit(1)
     .all();
   return rows[0] ?? null;

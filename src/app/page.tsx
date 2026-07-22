@@ -1,7 +1,7 @@
 import SessionButtons from "@/components/SessionButtons";
 import HomeClient from "@/components/HomeClient";
 import Dashboard from "@/components/Dashboard";
-import { listRooms, listReservations, nextReservation } from "@/lib/db/queries";
+import { listRooms, listReservations, nextReservation, currentReservation } from "@/lib/db/queries";
 import { weekStart, dayColumns } from "@/lib/week";
 import { getSessionUser } from "@/auth";
 
@@ -18,6 +18,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
   const sessionUser = await getSessionUser();
   const dashboardItems = rooms.map((room) => ({
     room,
+    current: currentReservation(room.id, now),
     next: nextReservation(room.id, now),
   }));
 
@@ -32,7 +33,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
         </div>
       </header>
       <Dashboard items={dashboardItems} />
-      <HomeClient rooms={rooms} reservations={reservations} weekStartTs={ws} />
+      <HomeClient
+        rooms={rooms}
+        reservations={reservations}
+        weekStartTs={ws}
+        sessionEmail={sessionUser?.email ?? null}
+        isAdmin={sessionUser?.isAdmin ?? false}
+      />
     </main>
   );
 }

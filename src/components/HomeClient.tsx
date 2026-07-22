@@ -4,18 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import WeekCalendar from "./WeekCalendar";
 import ReservationModal from "./ReservationModal";
+import ReservationDetailModal from "./ReservationDetailModal";
 import type { Reservation, Room } from "@/lib/db/queries";
 
 export default function HomeClient({
-  rooms, reservations, weekStartTs,
+  rooms, reservations, weekStartTs, sessionEmail, isAdmin,
 }: {
   rooms: Room[];
   reservations: Reservation[];
   weekStartTs: number;
+  sessionEmail: string | null;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const [sel, setSel] = useState<{ roomId: number; startTs: number; endTs: number } | null>(null);
   const [activeRoomId, setActiveRoomId] = useState<number | null>(rooms[0]?.id ?? null);
+  const [detail, setDetail] = useState<Reservation | null>(null);
 
   function go(deltaWeeks: number) {
     const w = weekStartTs + deltaWeeks * 7 * 24 * 3600;
@@ -23,6 +27,7 @@ export default function HomeClient({
   }
 
   const selRoom = sel ? rooms.find((r) => r.id === sel.roomId) : null;
+  const detailRoom = detail ? rooms.find((r) => r.id === detail.room_id) : null;
   const activeRooms = rooms.filter((r) => r.id === activeRoomId);
 
   return (
@@ -66,6 +71,7 @@ export default function HomeClient({
         reservations={reservations}
         weekStartTs={weekStartTs}
         onSelect={(roomId, startTs, endTs) => setSel({ roomId, startTs, endTs })}
+        onReservationClick={(r) => setDetail(r)}
       />
 
       {sel && selRoom && (
@@ -76,6 +82,16 @@ export default function HomeClient({
           endTs={sel.endTs}
           onClose={() => setSel(null)}
           onCreated={() => { setSel(null); router.refresh(); }}
+        />
+      )}
+
+      {detail && detailRoom && (
+        <ReservationDetailModal
+          reservation={detail}
+          roomName={detailRoom.name}
+          sessionEmail={sessionEmail}
+          isAdmin={isAdmin}
+          onClose={() => setDetail(null)}
         />
       )}
     </>
