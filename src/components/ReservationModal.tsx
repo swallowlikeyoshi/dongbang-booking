@@ -4,21 +4,20 @@ import { useState } from "react";
 import { TEAMS } from "@/lib/constants";
 
 export default function ReservationModal({
-  roomId, roomName, startTs, onClose, onCreated,
+  roomId, roomName, startTs, endTs, onClose, onCreated,
 }: {
   roomId: number;
   roomName: string;
   startTs: number;
+  endTs: number;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const [team, setTeam] = useState<string>(TEAMS[0]);
   const [title, setTitle] = useState("");
-  const [durationSlots, setDurationSlots] = useState(1); // 30분 단위
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const endTs = startTs + durationSlots * 1800;
   const fmt = (ts: number) => new Date(ts * 1000).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
 
   async function submit() {
@@ -61,18 +60,6 @@ export default function ReservationModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="예: 배터리팩 조립"
-          />
-        </label>
-
-        <label className="mt-3 block text-sm font-medium text-gray-700">
-          길이(30분 단위)
-          <input
-            type="number"
-            min={1}
-            max={48}
-            className="mt-1 w-full rounded-md border border-gray-300 p-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            value={durationSlots}
-            onChange={(e) => setDurationSlots(Math.max(1, Number(e.target.value)))}
           />
         </label>
 

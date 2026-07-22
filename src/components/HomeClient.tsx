@@ -14,7 +14,7 @@ export default function HomeClient({
   weekStartTs: number;
 }) {
   const router = useRouter();
-  const [sel, setSel] = useState<{ roomId: number; startTs: number } | null>(null);
+  const [sel, setSel] = useState<{ roomId: number; startTs: number; endTs: number } | null>(null);
 
   function go(deltaWeeks: number) {
     const w = weekStartTs + deltaWeeks * 7 * 24 * 3600;
@@ -47,7 +47,7 @@ export default function HomeClient({
         rooms={rooms}
         reservations={reservations}
         weekStartTs={weekStartTs}
-        onSlotClick={(roomId, startTs) => setSel({ roomId, startTs })}
+        onSelect={(roomId, startTs, endTs) => setSel({ roomId, startTs, endTs })}
       />
 
       {sel && selRoom && (
@@ -55,6 +55,7 @@ export default function HomeClient({
           roomId={sel.roomId}
           roomName={selRoom.name}
           startTs={sel.startTs}
+          endTs={sel.endTs}
           onClose={() => setSel(null)}
           onCreated={() => { setSel(null); router.refresh(); }}
         />
