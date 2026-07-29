@@ -52,12 +52,13 @@ export default function HomeClient({
         </span>
       </div>
 
-      <div className="mb-3 flex gap-1 border-b border-gray-200">
+      {/* 방이 3개라 좁은 화면에서는 탭이 넘친다. 줄바꿈 대신 가로 스크롤. */}
+      <div className="mb-3 flex gap-1 overflow-x-auto border-b border-gray-200">
         {rooms.map((room) => (
           <button
             key={room.id}
             onClick={() => setActiveRoomId(room.id)}
-            className={`-mb-px rounded-t-md border-b-2 px-3 py-1.5 text-sm font-medium ${
+            className={`-mb-px shrink-0 whitespace-nowrap rounded-t-md border-b-2 px-3 py-1.5 text-sm font-medium ${
               activeRoomId === room.id
                 ? "border-blue-600 bg-white text-blue-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"

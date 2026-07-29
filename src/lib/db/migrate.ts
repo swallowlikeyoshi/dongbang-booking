@@ -17,6 +17,7 @@ migrate(db, { migrationsFolder: "./drizzle" });
 const defaults = [
   { id: 1, name: "공학실습동(24214)" },
   { id: 2, name: "학생회관(03324)" },
+  { id: 3, name: "공작실(24112A)" },
 ];
 for (const r of defaults) {
   const existing = db.select().from(rooms).where(eq(rooms.id, r.id)).all();
