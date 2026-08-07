@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { TEAM_COLORS, type Team } from "@/lib/constants";
+import { SLOT_SECONDS, TEAM_COLORS, type Team } from "@/lib/constants";
 import { dayColumns, slotRows } from "@/lib/week";
 import type { Reservation, Room } from "@/lib/db/queries";
 
@@ -99,7 +99,12 @@ export default function WeekCalendar({
       {rooms.map((room) => (
         <section key={room.id}>
           <h2 className="mb-3 text-base font-semibold text-gray-800">{room.name}</h2>
-          <div className="rounded-lg border border-gray-200 sm:overflow-x-auto">
+          {/*
+            가로 스크롤 컨테이너를 두면 thead 의 sticky 가 뷰포트가 아니라 그 컨테이너에
+            붙어버려 아래로 스크롤할 때 요일 헤더가 따라오지 않는다. 표가 table-fixed 라
+            좁은 화면에서도 넘치지 않으므로 컨테이너 없이 그대로 둔다.
+          */}
+          <div className="rounded-lg border border-gray-300">
             <NowLineTable
               room={room}
               days={days}
@@ -190,36 +195,50 @@ function NowLineTable({
 
   return (
     <div ref={wrapRef} className="relative">
-      <table className="w-full table-fixed border-collapse text-[10px] sm:min-w-[640px] sm:text-xs">
+      {/* sticky thead 는 border-collapse 에서 테두리가 함께 따라오지 않는다. separate 사용. */}
+      <table className="w-full table-fixed border-separate border-spacing-0 text-[10px] sm:text-xs">
         <colgroup>
           <col className="w-7 sm:w-14" />
         </colgroup>
         <thead>
-          <tr className="bg-gray-50">
-            <th className="border-b border-gray-200 p-1 sm:p-2"></th>
-            {days.map((dTs, i) => (
-              <th
-                key={dTs}
-                className="border-b border-l border-gray-200 p-0.5 text-center font-medium text-gray-600 sm:p-2"
-              >
-                <div className="flex flex-col items-center leading-tight sm:flex-row sm:justify-center sm:gap-1">
-                  <span className="text-gray-800">{DAYS[i]}</span>
-                  <span className="text-gray-400">{new Date(dTs * 1000).getDate()}</span>
-                </div>
-              </th>
-            ))}
+          <tr>
+            <th className="sticky top-0 z-20 border-b-2 border-gray-400 bg-gray-100 p-1 sm:p-2"></th>
+            {days.map((dTs, i) => {
+              const isToday = dTs === todayStartTsForRender;
+              return (
+                <th
+                  key={dTs}
+                  className={`sticky top-0 z-20 border-b-2 border-l border-gray-400 p-0.5 text-center font-medium sm:p-2 ${
+                    isToday ? "bg-blue-50" : "bg-gray-100"
+                  }`}
+                >
+                  <div className="flex flex-col items-center leading-tight sm:flex-row sm:justify-center sm:gap-1">
+                    <span className={isToday ? "font-bold text-blue-700" : "text-gray-800"}>
+                      {DAYS[i]}
+                    </span>
+                    <span className={isToday ? "text-blue-500" : "text-gray-500"}>
+                      {new Date(dTs * 1000).getDate()}
+                    </span>
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody ref={tbodyRef}>
-          {rows.map(({ hour, min }, rowIdx) => (
+          {rows.map(({ hour, min }, rowIdx) => {
+            // 정시 경계(30분 행의 아래쪽)를 진하게 그어 시간 단위를 눈에 띄게 한다.
+            const rowBorder = min === 30 ? "border-b border-gray-400" : "border-b border-gray-200";
+            return (
             <tr key={`${hour}:${min}`}>
-              <td className="border-b border-gray-100 p-0.5 text-right align-top text-[9px] text-gray-400 sm:p-1 sm:text-[11px]">
+              <td className={`${rowBorder} p-0.5 text-right align-top text-[9px] text-gray-500 sm:p-1 sm:text-[11px]`}>
                 {min === 0 ? `${String(hour).padStart(2, "0")}:00` : ""}
               </td>
               {days.map((dTs) => {
                 const r = resAt(room.id, dTs, hour, min);
                 const slotTs = dTs + hour * 3600 + min * 60;
                 const isStart = r && r.start_at === slotTs;
+                const isEnd = r && r.end_at === slotTs + SLOT_SECONDS;
                 const isSelected =
                   !r &&
                   drag !== null &&
@@ -231,17 +250,21 @@ function NowLineTable({
                 const isToday = dTs === todayStartTsForRender;
 
                 if (r) {
+                  // 한 예약이 여러 슬롯에 걸치면 내부 가로선을 지워 하나의 블록으로 보이게 한다.
                   return (
                     <td
                       key={dTs}
                       data-today={isToday ? "true" : undefined}
                       onClick={() => onReservationClick?.(r)}
-                      className={`h-5 max-w-0 overflow-hidden border-b border-l border-gray-100 sm:h-6 ${
-                        onReservationClick ? "cursor-pointer" : ""
-                      } ${TEAM_COLORS[r.team as Team] ?? "bg-slate-500"} text-white`}
+                      className={`h-5 max-w-0 overflow-hidden border-l border-gray-400 sm:h-6 ${
+                        isEnd ? "border-b border-gray-400" : ""
+                      } ${onReservationClick ? "cursor-pointer" : ""} ${
+                        TEAM_COLORS[r.team as Team] ?? "bg-slate-500"
+                      } text-white`}
                     >
                       {isStart ? (
                         <span className="block truncate px-0.5 text-[9px] leading-5 sm:px-1 sm:text-[11px] sm:leading-6">
+                          {r.series_id ? "⟳ " : ""}
                           {r.team}
                           {r.title ? ` · ${r.title}` : ""}
                         </span>
@@ -258,8 +281,8 @@ function NowLineTable({
                     data-today={isToday ? "true" : undefined}
                     onPointerDown={(e) => beginDrag(e, room.id, dTs, rowIdx)}
                     onPointerEnter={() => extendDrag(room.id, dTs, rowIdx)}
-                    className={`h-5 max-w-0 touch-none overflow-hidden border-b border-l border-gray-100 cursor-pointer select-none sm:h-6 ${
-                      isSelected ? "bg-blue-100" : "hover:bg-gray-50"
+                    className={`h-5 max-w-0 touch-none overflow-hidden border-l border-gray-400 ${rowBorder} cursor-pointer select-none sm:h-6 ${
+                      isSelected ? "bg-blue-100" : isToday ? "bg-blue-50/40 hover:bg-blue-50" : "hover:bg-gray-100"
                     }`}
                   >
                     {""}
@@ -267,7 +290,8 @@ function NowLineTable({
                 );
               })}
             </tr>
-          ))}
+          );
+          })}
         </tbody>
       </table>
 

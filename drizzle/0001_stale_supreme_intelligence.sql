@@ -1,0 +1,1 @@
+ALTER TABLE `reservations` ADD `series_id` text;

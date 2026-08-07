@@ -104,4 +104,96 @@ describe("queries", () => {
     q.createReservation({ room_id: 1, team: "전기팀", title: "경계", start_at: 1800, end_at: 3600, user_email: "a@b.com", user_name: "A" });
     expect(q.currentReservation(1, 3600)).toBeNull();
   });
+
+  describe("매주 반복", () => {
+    const WEEK = 7 * 24 * 3600;
+    const base = {
+      room_id: 1, team: "전기팀", title: "정기 회의",
+      start_at: 1800, end_at: 3600,
+      user_email: "a@b.com", user_name: "A",
+    } as const;
+
+    test("반복 없이 만들면 series_id 는 null", () => {
+      q.createReservation({ ...base });
+      expect(q.listAllReservations()[0].series_id).toBeNull();
+    });
+
+    test("4주 반복이면 4개가 같은 series_id 로 생성", () => {
+      const r = q.createReservation({ ...base }, 4);
+      if (!r.ok) throw new Error("setup failed");
+      expect(r.created).toBe(4);
+      expect(r.skipped).toEqual([]);
+
+      const all = q.listAllReservations();
+      expect(all).toHaveLength(4);
+      const ids = new Set(all.map((x) => x.series_id));
+      expect(ids.size).toBe(1);
+      expect([...ids][0]).not.toBeNull();
+      expect(all.map((x) => x.start_at)).toEqual([1800, 1800 + WEEK, 1800 + 2 * WEEK, 1800 + 3 * WEEK]);
+    });
+
+    test("중간 주가 이미 찼으면 그 주만 건너뛰고 나머지는 생성", () => {
+      q.createReservation({
+        room_id: 1, team: "기계팀", title: "선점",
+        start_at: 1800 + 2 * WEEK, end_at: 3600 + 2 * WEEK,
+        user_email: "z@z.com", user_name: "Z",
+      });
+
+      const r = q.createReservation({ ...base }, 4);
+      if (!r.ok) throw new Error("setup failed");
+      expect(r.created).toBe(3);
+      expect(r.skipped).toEqual([1800 + 2 * WEEK]);
+      expect(q.listAllReservations()).toHaveLength(4); // 선점 1 + 신규 3
+    });
+
+    test("첫 회차가 겹치면 전체 거절 — 아무것도 삽입되지 않음", () => {
+      q.createReservation({
+        room_id: 1, team: "기계팀", title: "선점",
+        start_at: 1800, end_at: 3600,
+        user_email: "z@z.com", user_name: "Z",
+      });
+      const r = q.createReservation({ ...base }, 4);
+      expect(r.ok).toBe(false);
+      expect(q.listAllReservations()).toHaveLength(1);
+    });
+
+    test("deleteSeriesFrom 은 기준 시각 이후 회차만 지운다", () => {
+      const r = q.createReservation({ ...base }, 4);
+      if (!r.ok) throw new Error("setup failed");
+      const seriesId = q.listAllReservations()[0].series_id!;
+
+      const removed = q.deleteSeriesFrom(seriesId, 1800 + 2 * WEEK);
+      expect(removed).toBe(2);
+
+      const left = q.listAllReservations();
+      expect(left.map((x) => x.start_at)).toEqual([1800, 1800 + WEEK]);
+    });
+
+    test("deleteReservation 은 시리즈 중 그 회차만 지운다", () => {
+      const r = q.createReservation({ ...base }, 3);
+      if (!r.ok) throw new Error("setup failed");
+      const target = q.listAllReservations()[1];
+
+      q.deleteReservation(target.id);
+      expect(q.listAllReservations().map((x) => x.start_at)).toEqual([1800, 1800 + 2 * WEEK]);
+    });
+
+    test("countSeriesFrom 은 기준 시각 이후 남은 회차 수", () => {
+      q.createReservation({ ...base }, 4);
+      const seriesId = q.listAllReservations()[0].series_id!;
+      expect(q.countSeriesFrom(seriesId, 1800)).toBe(4);
+      expect(q.countSeriesFrom(seriesId, 1800 + 3 * WEEK)).toBe(1);
+    });
+
+    test("다른 시리즈는 서로 영향을 주지 않음", () => {
+      q.createReservation({ ...base }, 2);
+      q.createReservation({ ...base, room_id: 2 }, 2);
+      const seriesId = q.listAllReservations().find((x) => x.room_id === 1)!.series_id!;
+
+      q.deleteSeriesFrom(seriesId, 0);
+      const left = q.listAllReservations();
+      expect(left).toHaveLength(2);
+      expect(left.every((x) => x.room_id === 2)).toBe(true);
+    });
+  });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TEAMS } from "@/lib/constants";
+import { REPEAT_WEEK_OPTIONS, TEAMS, WEEK_SECONDS } from "@/lib/constants";
 
 export default function ReservationModal({
   roomId, roomName, startTs, endTs, onClose, onCreated,
@@ -15,21 +15,37 @@ export default function ReservationModal({
 }) {
   const [team, setTeam] = useState<string>(TEAMS[0]);
   const [title, setTitle] = useState("");
+  const [repeat, setRepeat] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState<number>(REPEAT_WEEK_OPTIONS[1]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const fmt = (ts: number) => new Date(ts * 1000).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
+  const fmtDate = (ts: number) => new Date(ts * 1000).toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+  const lastOccurrence = startTs + (repeatWeeks - 1) * WEEK_SECONDS;
 
   async function submit() {
     setBusy(true); setError(null);
     const res = await fetch("/api/reservations", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ room_id: roomId, team, title, start_at: startTs, end_at: endTs }),
+      body: JSON.stringify({
+        room_id: roomId, team, title, start_at: startTs, end_at: endTs,
+        repeat_weeks: repeat ? repeatWeeks : 1,
+      }),
     });
     setBusy(false);
     if (res.status === 401) { setError("로그인이 필요합니다."); return; }
     if (!res.ok) { const j = await res.json().catch(() => ({})); setError(j.error ?? "실패"); return; }
+
+    // 반복 예약 중 이미 찬 주는 건너뛰므로, 그 사실을 알려주고 나서 닫는다.
+    const body = await res.json().catch(() => null);
+    if (body?.skipped?.length) {
+      alert(
+        `${body.created}주 예약했습니다.\n이미 예약이 있어 건너뛴 날: ` +
+          body.skipped.map((ts: number) => fmtDate(ts)).join(", "),
+      );
+    }
     onCreated();
   }
 
@@ -62,6 +78,36 @@ export default function ReservationModal({
             placeholder="예: 배터리팩 조립"
           />
         </label>
+
+        <div className="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              checked={repeat}
+              onChange={(e) => setRepeat(e.target.checked)}
+            />
+            매주 반복
+          </label>
+
+          {repeat && (
+            <>
+              <select
+                className="mt-2 w-full rounded-md border border-gray-300 bg-white p-1.5 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                value={repeatWeeks}
+                onChange={(e) => setRepeatWeeks(Number(e.target.value))}
+              >
+                {REPEAT_WEEK_OPTIONS.map((w) => (
+                  <option key={w} value={w}>{w}주간</option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-gray-500">
+                {fmtDate(startTs)}부터 {fmtDate(lastOccurrence)}까지 매주 같은 시간에 예약합니다.
+                이미 예약이 있는 주는 건너뜁니다.
+              </p>
+            </>
+          )}
+        </div>
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 

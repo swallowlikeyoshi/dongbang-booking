@@ -20,12 +20,21 @@ export default function ReservationDetailModal({
 
   const fmt = (ts: number) => new Date(ts * 1000).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
   const canCancel = sessionEmail !== null && (sessionEmail === reservation.user_email || isAdmin);
+  const isRecurring = reservation.series_id !== null;
 
-  async function cancel() {
-    if (!confirm("예약을 취소할까요?")) return;
+  async function cancel(scope: "one" | "series") {
+    const message =
+      scope === "series"
+        ? "이 일정과 이후의 모든 반복 일정을 취소할까요?"
+        : "이 일정만 취소할까요?";
+    if (!confirm(message)) return;
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/reservations/${reservation.id}`, { method: "DELETE" });
+    const url =
+      scope === "series"
+        ? `/api/reservations/${reservation.id}?scope=series`
+        : `/api/reservations/${reservation.id}`;
+    const res = await fetch(url, { method: "DELETE" });
     setBusy(false);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
@@ -57,28 +66,54 @@ export default function ReservationDetailModal({
           {reservation.title ? reservation.title : "(설명 없음)"}
         </p>
         <p className="mb-1 text-sm text-gray-500">예약자: {reservation.user_name}</p>
-        <p className="mb-4 text-sm text-gray-500">
+        <p className="mb-2 text-sm text-gray-500">
           {fmt(reservation.start_at)} ~ {fmt(reservation.end_at)}
         </p>
 
+        {isRecurring && (
+          <p className="mb-4 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+            ⟳ 매주 반복되는 일정
+          </p>
+        )}
+
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-        <div className="mt-5 flex justify-end gap-2">
-          {canCancel && (
-            <button
-              disabled={busy}
-              className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-              onClick={cancel}
-            >
-              취소
-            </button>
+        <div className="mt-5 flex flex-col gap-2">
+          {canCancel && isRecurring && (
+            <div className="flex flex-col gap-2">
+              <button
+                disabled={busy}
+                className="w-full rounded-md bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                onClick={() => cancel("one")}
+              >
+                이 일정만 취소
+              </button>
+              <button
+                disabled={busy}
+                className="w-full rounded-md border border-red-500 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                onClick={() => cancel("series")}
+              >
+                이후 모든 반복 일정 취소
+              </button>
+            </div>
           )}
-          <button
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-            onClick={onClose}
-          >
-            닫기
-          </button>
+          <div className="flex justify-end gap-2">
+            {canCancel && !isRecurring && (
+              <button
+                disabled={busy}
+                className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                onClick={() => cancel("one")}
+              >
+                취소
+              </button>
+            )}
+            <button
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              onClick={onClose}
+            >
+              닫기
+            </button>
+          </div>
         </div>
       </div>
     </div>

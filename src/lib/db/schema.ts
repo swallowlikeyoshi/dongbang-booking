@@ -15,4 +15,6 @@ export const reservations = sqliteTable("reservations", {
   start_at: integer("start_at").notNull(),
   end_at: integer("end_at").notNull(),
   created_at: integer("created_at").notNull(),
+  /** 매주 반복으로 만든 예약들을 묶는 키. 단발 예약은 null. */
+  series_id: text("series_id"),
 });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth";
 import { listReservations, createReservation } from "@/lib/db/queries";
-import { snapToSlot } from "@/lib/reservations";
+import { normalizeRepeatWeeks, snapToSlot } from "@/lib/reservations";
 
 export async function GET(req: NextRequest) {
   const start = Number(req.nextUrl.searchParams.get("start"));
@@ -29,7 +29,12 @@ export async function POST(req: NextRequest) {
     user_name: user.name,
   };
 
-  const result = createReservation(input);
+  const repeatWeeks = normalizeRepeatWeeks(body.repeat_weeks ? Number(body.repeat_weeks) : 1);
+
+  const result = createReservation(input, repeatWeeks);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
-  return NextResponse.json({ id: result.id }, { status: 201 });
+  return NextResponse.json(
+    { id: result.id, created: result.created, skipped: result.skipped },
+    { status: 201 },
+  );
 }
