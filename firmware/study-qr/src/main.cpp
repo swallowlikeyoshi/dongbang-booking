@@ -48,13 +48,11 @@ static void codeForSlot(long slot, char *out) {
 
 static void drawHeader() {
   tft.fillRectangle(0, 0, SCREEN_W - 1, HEADER_H - 1, COLOR_WHITE);
-  tft.setFont(Terminal6x8);
   drawCentered(ROOM_NAME, 3, COLOR_BLACK);
 }
 
 static void drawFooter(const char *code) {
   tft.fillRectangle(0, SCREEN_H - FOOTER_H, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE);
-  tft.setFont(Terminal6x8);
   // ASCII만 표시 가능 (내장 폰트에 한글 글리프 없음).
   // "기본 카메라로 스캔" 안내는 화면 옆 인쇄 라벨로 대체한다.
   drawCentered("Scan with camera", SCREEN_H - FOOTER_H + 3, COLOR_BLACK);
@@ -68,7 +66,6 @@ static void drawFooter(const char *code) {
 /** 시각이 틀리면 코드가 전부 어긋난다. 틀린 QR 을 띄우느니 아무것도 띄우지 않는다. */
 static void drawTimeError() {
   tft.fillRectangle(0, 0, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE);
-  tft.setFont(Terminal6x8);
   drawCentered("TIME SYNC FAILED", SCREEN_H / 2 - 12, COLOR_RED);
   drawCentered("Report manually", SCREEN_H / 2 + 4, COLOR_BLACK);
   lastSlot = -1;
@@ -143,6 +140,10 @@ void setup() {
 
   tft.begin();
   tft.setOrientation(TFT_ORIENTATION);
+  // drawText 는 글자 배경을 이 색으로 칠한다. 기본값(검정)이면 흰 바탕에
+  // 검은 글씨를 그릴 때 글자 자리가 통째로 검은 막대가 된다.
+  tft.setBackgroundColor(COLOR_WHITE);
+  tft.setFont(Terminal6x8);
   tft.fillRectangle(0, 0, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE);
   drawHeader();
   Serial.printf("[tft] begin ok  %dx%d  RST=%d RS=%d CS=%d\n",
