@@ -127,10 +127,18 @@ export function getSession(id: number): StudySession | null {
 export function autoCloseStale(now: number): number {
   const stale = listOpenSessions().filter((r) => now - r.started_at > MAX_OPEN_SECONDS);
   for (const row of stale) {
+    const patch = { ended_at: row.started_at + MAX_OPEN_SECONDS, end_proof: null, status: "unresolved" };
     db.update(schema.studySessions)
-      .set({ ended_at: row.started_at + MAX_OPEN_SECONDS, end_proof: null, status: "unresolved" })
+      .set(patch)
       .where(eq(schema.studySessions.id, row.id))
       .run();
+    recordEdit({
+      sessionId: row.id,
+      editorEmail: "system",
+      before: row,
+      after: { ...row, ...patch },
+      reason: "10시간 초과 자동 마감",
+    });
   }
   return stale.length;
 }
@@ -160,6 +168,10 @@ export function reviewSession(args: {
 }): CloseResult {
   const before = getSession(args.sessionId);
   if (!before) return { ok: false, error: "세션을 찾을 수 없습니다." };
+  const reviewable = ["pending", "approved", "rejected"];
+  if (!reviewable.includes(before.status)) {
+    return { ok: false, error: "승인/거부할 수 없는 상태입니다." };
+  }
   const status = args.approve ? "approved" : "rejected";
   const after = { ...before, status };
   db.update(schema.studySessions).set({ status }).where(eq(schema.studySessions.id, args.sessionId)).run();

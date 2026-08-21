@@ -85,4 +85,40 @@ describe("자동 마감", () => {
     expect(s.listEdits(id)).toHaveLength(1);
     expect(s.listEdits(id)[0].editor_email).toBe("admin@b.com");
   });
+
+  test("open 세션은 review 할 수 없다", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    const id = s.listSessionsByMember(1)[0].id;
+    const r = s.reviewSession({ sessionId: id, approve: true, editorEmail: "admin@b.com" });
+    expect(r.ok).toBe(false);
+    expect(s.getSession(id)?.status).toBe("open");
+  });
+
+  test("unresolved 세션은 review 할 수 없다", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    s.autoCloseStale(T0 + 11 * 3600);
+    const id = s.listSessionsByMember(1)[0].id;
+    const r = s.reviewSession({ sessionId: id, approve: true, editorEmail: "admin@b.com" });
+    expect(r.ok).toBe(false);
+  });
+
+  test("approved 세션도 관리자가 rejected 로 정정할 수 있다", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    s.closeSession({ memberId: 1, ts: T0 + 3600, proof: "manual" });
+    const id = s.listSessionsByMember(1)[0].id;
+    s.reviewSession({ sessionId: id, approve: true, editorEmail: "admin@b.com" });
+    const r = s.reviewSession({ sessionId: id, approve: false, editorEmail: "admin@b.com", reason: "정정" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.session.status).toBe("rejected");
+  });
+
+  test("autoCloseStale 은 마감된 세션마다 수정 이력을 남긴다", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    const id = s.listSessionsByMember(1)[0].id;
+    s.autoCloseStale(T0 + 11 * 3600);
+    const edits = s.listEdits(id);
+    expect(edits).toHaveLength(1);
+    expect(edits[0].editor_email).toBe("system");
+    expect(JSON.parse(edits[0].before_json).status).toBe("open");
+  });
 });
