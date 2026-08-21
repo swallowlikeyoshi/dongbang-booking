@@ -10,22 +10,31 @@ export default function ReviewButtons({ sessionId }: { sessionId: number }) {
   async function send(approve: boolean) {
     setError("");
     setBusy(true);
-    const trimmedReason = reason.trim();
-    const body: { sessionId: number; approve: boolean; reason?: string } = { sessionId, approve };
-    if (trimmedReason) body.reason = trimmedReason;
+    try {
+      const trimmedReason = reason.trim();
+      const body: { sessionId: number; approve: boolean; reason?: string } = { sessionId, approve };
+      if (trimmedReason) body.reason = trimmedReason;
 
-    const r = await fetch("/api/attendance/review", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (r.ok) {
-      window.location.reload();
-      return;
+      const r = await fetch("/api/attendance/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        window.location.reload();
+        return;
+      }
+      const j = await r.json().catch(() => null);
+      setError(j?.error ?? "처리에 실패했습니다.");
+    } catch {
+      // fetch 자체가 거부된 경우(오프라인, DNS 실패, 연결 끊김 등) — 응답이
+      // 없으므로 별도 네트워크 오류 메시지를 보여준다.
+      setError("네트워크 오류로 처리하지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      // 성공(reload) 경로를 포함해 항상 실행된다 — 어떤 경로로 끝나든 버튼이
+      // 영구히 비활성 상태로 남지 않도록 보장한다.
+      setBusy(false);
     }
-    const j = await r.json().catch(() => null);
-    setError(j?.error ?? "처리에 실패했습니다.");
-    setBusy(false);
   }
 
   return (
