@@ -5,6 +5,7 @@ import { weekStart } from "@/lib/week";
 import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
 import type { Member } from "@/lib/db/members";
 import ContributionGrid from "@/components/attendance/ContributionGrid";
+import { formatDuration } from "@/lib/attendance/format";
 import UnresolvedReport from "@/components/attendance/UnresolvedReport";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -53,16 +54,16 @@ export default function MySection({ member }: { member: Member }) {
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="text-sm text-slate-500">누적</div>
-          <div className="text-2xl">{((totals?.countedSeconds ?? 0) / 3600).toFixed(1)}시간</div>
+          <div className="text-2xl">{formatDuration(totals?.countedSeconds ?? 0)}</div>
           {isCapped && totals && (
             <div className="mt-1 text-xs text-slate-400">
-              상한 전 {(totals.rawSeconds / 3600).toFixed(1)}시간 · 주간 인정 상한 {(cap! / 3600).toFixed(0)}시간 적용
+              상한 전 {formatDuration(totals.rawSeconds)} · 주간 인정 상한 {(cap! / 3600).toFixed(0)}시간 적용
             </div>
           )}
         </div>
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="text-sm text-slate-500">이번 주</div>
-          <div className="text-2xl">{(weekSeconds / 3600).toFixed(1)}시간</div>
+          <div className="text-2xl">{formatDuration(weekSeconds)}</div>
         </div>
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="text-sm text-slate-500">승인 대기</div>
@@ -74,7 +75,7 @@ export default function MySection({ member }: { member: Member }) {
       </div>
 
       <h3 className="mt-6 mb-2 text-sm text-slate-500">최근 26주</h3>
-      <ContributionGrid buckets={buckets} weeks={26} color={color} />
+      <ContributionGrid buckets={buckets} weeks={26} color={color} showWeekdays />
 
       <h3 className="mt-6 mb-2 text-sm text-slate-500">기록</h3>
       {shown.length === 0 && (
@@ -90,7 +91,7 @@ export default function MySection({ member }: { member: Member }) {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex-1">{fmt(s.started_at)}{s.ended_at ? ` – ${fmt(s.ended_at)}` : ""}</span>
                 <span className="text-slate-600">
-                  {s.ended_at ? `${(((s.ended_at as number) - s.started_at) / 3600).toFixed(1)}h` : "—"}
+                  {s.ended_at ? formatDuration((s.ended_at as number) - s.started_at) : "—"}
                 </span>
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
                   {STATUS_LABEL[s.status] ?? s.status}
@@ -118,7 +119,7 @@ export default function MySection({ member }: { member: Member }) {
               <li key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-3">
                 <span className="flex-1">{fmt(s.started_at)}{s.ended_at ? ` – ${fmt(s.ended_at)}` : ""}</span>
                 <span className="text-slate-600">
-                  {s.ended_at ? `${(((s.ended_at as number) - s.started_at) / 3600).toFixed(1)}h` : "—"}
+                  {s.ended_at ? formatDuration((s.ended_at as number) - s.started_at) : "—"}
                 </span>
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
                   {STATUS_LABEL[s.status] ?? s.status}

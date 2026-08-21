@@ -2,8 +2,10 @@ import { memberTotals } from "@/lib/attendance/aggregate";
 import { getEntryQuota, getWeeklyCapSeconds } from "@/lib/attendance/settings";
 import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
 import type { Member } from "@/lib/db/members";
+import { formatDuration } from "@/lib/attendance/format";
+import CompetitionSelect from "./CompetitionSelect";
 
-export default function RankingSection({ me }: { me: Member | null }) {
+export default function RankingSection({ me, isAdmin }: { me: Member | null; isAdmin: boolean }) {
   const cap = getWeeklyCapSeconds();
   const quota = getEntryQuota();
   const rows = memberTotals(cap ? { weeklyCapSeconds: cap } : undefined);
@@ -26,6 +28,7 @@ export default function RankingSection({ me }: { me: Member | null }) {
               <th className="w-12 px-3 py-2">#</th>
               <th className="px-3 py-2">이름</th>
               <th className="px-3 py-2">세부팀</th>
+              <th className="px-3 py-2">참여 대회</th>
               <th className="px-3 py-2 text-right">인정 시간</th>
               {cap && <th className="px-3 py-2 text-right">상한 전</th>}
             </tr>
@@ -48,17 +51,24 @@ export default function RankingSection({ me }: { me: Member | null }) {
                     {r.member.name}
                   </td>
                   <td className="px-3 py-2 text-slate-600">{r.member.sub_team}</td>
-                  <td className="px-3 py-2 text-right">{(r.countedSeconds / 3600).toFixed(1)}h</td>
+                  <td className="px-3 py-2">
+                    {isAdmin ? (
+                      <CompetitionSelect memberId={r.member.id} value={r.member.competition} />
+                    ) : (
+                      <span className="text-slate-600">{r.member.competition ?? "—"}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap">{formatDuration(r.countedSeconds)}</td>
                   {cap && (
                     <td className="px-3 py-2 text-right text-slate-400">
-                      {r.rawSeconds !== r.countedSeconds ? `${(r.rawSeconds / 3600).toFixed(1)}h` : "—"}
+                      {r.rawSeconds !== r.countedSeconds ? formatDuration(r.rawSeconds) : "—"}
                     </td>
                   )}
                 </tr>
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">아직 기록된 시간이 없습니다.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">아직 기록된 시간이 없습니다.</td></tr>
             )}
           </tbody>
         </table>

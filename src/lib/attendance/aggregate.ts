@@ -132,3 +132,14 @@ export function teamDailyBuckets(fromTs: number, toTs: number): Record<SubTeam, 
   }
   return out;
 }
+
+/** 날짜 → 초. 전기팀 전체를 한 장으로 보는 잔디용. */
+export function allDailyBuckets(fromTs: number, toTs: number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of countedRows()) {
+    if (r.started_at < fromTs || r.started_at > toTs) continue;
+    const k = dateKey(r.started_at);
+    out[k] = (out[k] ?? 0) + ((r.ended_at as number) - r.started_at);
+  }
+  return out;
+}

@@ -1,6 +1,7 @@
 import { teamDailyBuckets, memberTotals } from "@/lib/attendance/aggregate";
 import { SUB_TEAMS, SUB_TEAM_COLORS } from "@/lib/constants";
 import ContributionGrid from "@/components/attendance/ContributionGrid";
+import { formatDuration } from "@/lib/attendance/format";
 
 const WEEKS = 18;
 
@@ -9,11 +10,11 @@ export default function TeamsSection() {
   const buckets = teamDailyBuckets(now - WEEKS * 7 * 86400, now);
   const totals = memberTotals();
 
-  const teamHours: Record<string, number> = {};
-  for (const t of SUB_TEAMS) teamHours[t] = 0;
+  const teamSeconds: Record<string, number> = {};
+  for (const t of SUB_TEAMS) teamSeconds[t] = 0;
   for (const r of totals) {
-    if (teamHours[r.member.sub_team] !== undefined) {
-      teamHours[r.member.sub_team] += r.countedSeconds / 3600;
+    if (teamSeconds[r.member.sub_team] !== undefined) {
+      teamSeconds[r.member.sub_team] += r.countedSeconds;
     }
   }
 
@@ -30,7 +31,7 @@ export default function TeamsSection() {
             <div className="mb-2 flex items-baseline gap-2">
               <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: SUB_TEAM_COLORS[t] }} />
               <span>{t}</span>
-              <span className="ml-auto text-sm text-slate-500">{teamHours[t].toFixed(0)}h</span>
+              <span className="ml-auto text-sm text-slate-500">{formatDuration(teamSeconds[t])}</span>
             </div>
             <ContributionGrid buckets={buckets[t]} weeks={WEEKS} color={SUB_TEAM_COLORS[t]} cell={9} />
           </div>

@@ -3,6 +3,7 @@ import { getSessionUser } from "@/auth";
 import { getMemberByEmail } from "@/lib/db/members";
 import MySection from "@/components/study/MySection";
 import RankingSection from "@/components/study/RankingSection";
+import TeamTotalSection from "@/components/study/TeamTotalSection";
 import TeamsSection from "@/components/study/TeamsSection";
 import SessionButtons from "@/components/SessionButtons";
 
@@ -29,6 +30,7 @@ export default async function StudyPage() {
       <nav className="sticky top-0 z-10 -mx-4 mt-3 flex gap-4 border-b bg-white/95 px-4 py-2 text-sm backdrop-blur sm:-mx-6 sm:px-6">
         <a href="#me" className="text-blue-600">내 스터디</a>
         <a href="#ranking" className="text-blue-600">순위</a>
+        <a href="#all" className="text-blue-600">전체</a>
         <a href="#teams" className="text-blue-600">팀 현황</a>
       </nav>
 
@@ -47,7 +49,8 @@ export default async function StudyPage() {
 
       <div className="mt-6 space-y-6">
         <MySection member={member} />
-        <RankingSection me={member} />
+        <RankingSection me={member} isAdmin={user.isAdmin} />
+        <TeamTotalSection />
         <TeamsSection />
       </div>
     </main>

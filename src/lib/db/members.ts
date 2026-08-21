@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { db, schema } from "./index";
-import type { SubTeam } from "@/lib/constants";
+import type { SubTeam, Competition } from "@/lib/constants";
 
 export type Member = typeof schema.members.$inferSelect;
 
@@ -102,4 +102,18 @@ export function claimMember(args: {
     created_at: now,
   }).returning().all()[0];
   return { ok: true, member: row };
+}
+
+/** 관리자가 참여 대회를 지정한다. null 이면 미배정으로 되돌린다. */
+export function setCompetition(
+  memberId: number,
+  competition: Competition | null,
+): { ok: true } | { ok: false; error: string } {
+  const rows = db.select().from(schema.members).where(eq(schema.members.id, memberId)).all();
+  if (rows.length === 0) return { ok: false, error: "멤버를 찾을 수 없습니다." };
+  db.update(schema.members)
+    .set({ competition })
+    .where(eq(schema.members.id, memberId))
+    .run();
+  return { ok: true };
 }

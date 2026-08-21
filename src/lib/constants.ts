@@ -31,3 +31,7 @@ export const SUB_TEAM_COLORS: Record<SubTeam, string> = {
   "배선 및 하네스": "#1baf7a",
   "토크 벡터링": "#4a3aa7",
 };
+
+/** 참여 대회. 세부팀장은 두 대회를 모두 뛴다. 미배정은 null. */
+export const COMPETITIONS = ["영광", "화성", "세부팀장"] as const;
+export type Competition = (typeof COMPETITIONS)[number];

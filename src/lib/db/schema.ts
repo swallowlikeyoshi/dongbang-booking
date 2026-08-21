@@ -28,6 +28,8 @@ export const members = sqliteTable("members", {
   user_email: text("user_email").unique(),
   /** seeded = 원장에서 시드됨, pending = 원장에 없어 승인 대기 */
   status: text("status").notNull().default("seeded"),
+  /** 참여 대회(영광/화성/세부팀장). 관리자가 지정하며 미배정은 null. */
+  competition: text("competition"),
   created_at: integer("created_at").notNull(),
 });
 
