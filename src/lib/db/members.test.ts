@@ -45,4 +45,36 @@ describe("members", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.member.status).toBe("pending");
   });
+
+  test("바인딩된 멤버를 언바인드하면 user_email 이 지워진다", () => {
+    const claimed = m.claimMember({ studentNo: "2025312077", email: "a@b.com" });
+    expect(claimed.ok).toBe(true);
+    if (!claimed.ok) return;
+
+    const r = m.unbindMember(claimed.member.id);
+    expect(r.ok).toBe(true);
+    expect(m.getMemberByStudentNo("2025312077")?.user_email).toBeNull();
+  });
+
+  test("언바인드된 학번은 다른 계정이 다시 클레임할 수 있다", () => {
+    const claimed = m.claimMember({ studentNo: "2025312077", email: "a@b.com" });
+    if (!claimed.ok) throw new Error("setup failed");
+    m.unbindMember(claimed.member.id);
+
+    const r = m.claimMember({ studentNo: "2025312077", email: "z@z.com" });
+    expect(r.ok).toBe(true);
+    expect(m.getMemberByEmail("z@z.com")?.student_no).toBe("2025312077");
+  });
+
+  test("바인딩되지 않은 멤버를 언바인드하면 실패", () => {
+    const unbound = m.getMemberByStudentNo("2022313526");
+    if (!unbound) throw new Error("setup failed");
+    const r = m.unbindMember(unbound.id);
+    expect(r.ok).toBe(false);
+  });
+
+  test("존재하지 않는 id 를 언바인드하면 실패", () => {
+    const r = m.unbindMember(999999);
+    expect(r.ok).toBe(false);
+  });
 });

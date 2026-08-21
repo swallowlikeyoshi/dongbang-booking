@@ -6,6 +6,7 @@ import { deviceStatuses } from "@/lib/attendance/devices";
 import { getSetting } from "@/lib/attendance/settings";
 import ReviewButtons from "@/components/attendance/ReviewButtons";
 import SettingsForm from "@/components/attendance/SettingsForm";
+import UnbindButton from "@/components/attendance/UnbindButton";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,9 @@ export default async function AdminStudyPage() {
 
   const now = Math.floor(Date.now() / 1000);
   const pending = listPendingReview();
-  const members = new Map(listMembers().map((m) => [m.id, m]));
+  const allMembers = listMembers();
+  const members = new Map(allMembers.map((m) => [m.id, m]));
+  const boundMembers = allMembers.filter((m) => m.user_email);
   const devices = deviceStatuses(now);
 
   return (
@@ -70,6 +73,23 @@ export default async function AdminStudyPage() {
           );
         })}
         {pending.length === 0 && <li className="py-2 text-slate-500">없습니다.</li>}
+      </ul>
+
+      <h2 className="mt-8 mb-2 text-lg">계정 연결 {boundMembers.length}건</h2>
+      <p className="mb-2 text-sm text-slate-500">
+        학번을 잘못 클레임한 경우(오클릭·오입력·타인의 학번 도용 등) 여기서 연결을 해제한다.
+        학번의 누적 시간은 유지되며, 이후 다른 계정이 그 학번을 다시 클레임할 수 있다.
+      </p>
+      <ul className="divide-y">
+        {boundMembers.map((mem) => (
+          <li key={mem.id} className="flex flex-wrap items-center gap-3 py-2">
+            <span className="flex-1">
+              {mem.name} · {mem.sub_team} · <span className="text-slate-500">{mem.user_email}</span>
+            </span>
+            <UnbindButton memberId={mem.id} name={mem.name} />
+          </li>
+        ))}
+        {boundMembers.length === 0 && <li className="py-2 text-slate-500">없습니다.</li>}
       </ul>
 
       <h2 className="mt-8 mb-2 text-lg">설정</h2>
