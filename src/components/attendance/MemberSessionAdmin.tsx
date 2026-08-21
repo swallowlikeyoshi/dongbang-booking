@@ -3,6 +3,8 @@ import { formatDuration } from "@/lib/attendance/format";
 import type { Member } from "@/lib/db/members";
 import SessionTimeEditor from "./SessionTimeEditor";
 import DeleteSessionButton from "./DeleteSessionButton";
+import AddSessionForm from "./AddSessionForm";
+import { listRooms } from "@/lib/db/queries";
 
 const STATUS_LABEL: Record<string, string> = {
   open: "진행 중",
@@ -23,6 +25,7 @@ function fmt(ts: number | null) {
 
 export default function MemberSessionAdmin({ member }: { member: Member }) {
   const sessions = listSessionsByMember(member.id);
+  const rooms = listRooms();
   const counted = sessions
     .filter((s) => ["confirmed", "pending", "approved"].includes(s.status) && s.ended_at !== null)
     .reduce((acc, s) => acc + ((s.ended_at as number) - s.started_at), 0);
@@ -58,6 +61,9 @@ export default function MemberSessionAdmin({ member }: { member: Member }) {
                 {s.start_proof === "import" && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900">이관</span>
                 )}
+                {s.start_proof === "admin" && (
+                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-900">수동</span>
+                )}
                 {isDeleted ? (
                   <DeleteSessionButton sessionId={s.id} label="복구" restore />
                 ) : (
@@ -84,6 +90,10 @@ export default function MemberSessionAdmin({ member }: { member: Member }) {
           );
         })}
       </ul>
+
+      <div className="px-4 pb-4">
+        <AddSessionForm memberId={member.id} memberName={member.name} rooms={rooms} />
+      </div>
     </div>
   );
 }

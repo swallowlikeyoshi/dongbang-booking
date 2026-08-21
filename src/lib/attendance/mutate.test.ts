@@ -104,3 +104,53 @@ describe("삭제 · 복구 · 시각 수정", () => {
     expect(s.getSession(row.id)!.ended_at).toBe(T0 + 3600);
   });
 });
+
+describe("관리자 수동 추가", () => {
+  beforeEach(() => {
+    migrate(db as never, { migrationsFolder: "./drizzle" });
+    db.delete(schema.sessionEdits).run();
+    db.delete(schema.studySessions).run();
+    db.delete(schema.members).run();
+    db.delete(schema.rooms).run();
+    db.insert(schema.rooms).values([{ id: 1, name: "공학실습동" }, { id: 2, name: "학생회관" }]).run();
+    db.insert(schema.members).values({
+      id: 1, student_no: "1", name: "가", sub_team: "토크 벡터링", created_at: 0,
+    }).run();
+  });
+
+  test("추가하면 집계에 잡히고 증명 등급이 admin 이다", () => {
+    const r = s.createSessionManually({
+      memberId: 1, roomId: 2, startedAt: T0, endedAt: T0 + 2 * 3600,
+      editorEmail: "admin@b.com", now: NOW, note: "학생회관 배선 작업",
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.session.start_proof).toBe("admin");
+    expect(r.session.status).toBe("approved");
+    expect(r.session.room_id).toBe(2);
+    expect(a.memberTotals().find((x) => x.member.id === 1)!.countedSeconds).toBe(2 * 3600);
+  });
+
+  test("누가 넣었는지 이력에 남는다", () => {
+    const r = s.createSessionManually({
+      memberId: 1, roomId: 2, startedAt: T0, endedAt: T0 + 3600,
+      editorEmail: "admin@b.com", now: NOW,
+    });
+    if (!r.ok) return;
+    const edits = s.listEdits(r.session.id);
+    expect(edits).toHaveLength(1);
+    expect(edits[0].editor_email).toBe("admin@b.com");
+    // 새 기록이므로 이전 상태가 없다.
+    expect(JSON.parse(edits[0].before_json)).toBeNull();
+  });
+
+  test("역전·미래·24시간 초과·없는 멤버·없는 방은 거절", () => {
+    const base = { memberId: 1, roomId: 2, editorEmail: "admin@b.com", now: NOW };
+    expect(s.createSessionManually({ ...base, startedAt: T0 + 100, endedAt: T0 }).ok).toBe(false);
+    expect(s.createSessionManually({ ...base, startedAt: T0, endedAt: NOW + 3600 }).ok).toBe(false);
+    expect(s.createSessionManually({ ...base, startedAt: T0, endedAt: T0 + 25 * 3600 }).ok).toBe(false);
+    expect(s.createSessionManually({ ...base, memberId: 999, startedAt: T0, endedAt: T0 + 3600 }).ok).toBe(false);
+    expect(s.createSessionManually({ ...base, roomId: 99, startedAt: T0, endedAt: T0 + 3600 }).ok).toBe(false);
+    expect(db.select().from(schema.studySessions).all()).toHaveLength(0);
+  });
+});

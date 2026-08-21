@@ -96,7 +96,10 @@ export type SessionEdit = typeof schema.sessionEdits.$inferSelect;
 
 /** 원본 시각을 덮어쓰지 않고 변경 이력을 별도 행으로 쌓는다. */
 export function recordEdit(args: {
-  sessionId: number; editorEmail: string; before: StudySession; after: StudySession; reason?: string;
+  sessionId: number; editorEmail: string;
+  /** 새로 만든 기록이면 null — 이전 상태가 존재하지 않는다. */
+  before: StudySession | null;
+  after: StudySession; reason?: string;
 }): void {
   db.insert(schema.sessionEdits).values({
     session_id: args.sessionId,
@@ -284,4 +287,54 @@ export function editSessionTimes(args: {
     reason: args.reason ?? "시각 수정",
   });
   return { ok: true, session: after };
+}
+
+/**
+ * 관리자가 기록을 직접 추가한다. 장비가 없는 방(학생회관)의 스터디를
+ * 손으로 넣기 위한 경로다. QR 증명이 없으므로 관리자 책임으로 approved 로
+ * 들어가며, 누가 넣었는지 이력에 남는다.
+ */
+export function createSessionManually(args: {
+  memberId: number; roomId: number; startedAt: number; endedAt: number;
+  editorEmail: string; now: number; note?: string;
+}): CloseResult {
+  if (!Number.isFinite(args.startedAt) || !Number.isFinite(args.endedAt)) {
+    return { ok: false, error: "시각이 올바르지 않습니다." };
+  }
+  if (args.endedAt <= args.startedAt) {
+    return { ok: false, error: "종료 시각이 시작 시각보다 뒤여야 합니다." };
+  }
+  if (args.startedAt > args.now || args.endedAt > args.now) {
+    return { ok: false, error: "미래 시각은 입력할 수 없습니다." };
+  }
+  if (args.endedAt - args.startedAt > MAX_EDIT_SECONDS) {
+    return { ok: false, error: "한 기록은 24시간을 넘을 수 없습니다." };
+  }
+
+  const member = db.select().from(schema.members)
+    .where(eq(schema.members.id, args.memberId)).all()[0];
+  if (!member) return { ok: false, error: "멤버를 찾을 수 없습니다." };
+
+  const room = db.select().from(schema.rooms)
+    .where(eq(schema.rooms.id, args.roomId)).all()[0];
+  if (!room) return { ok: false, error: "방을 찾을 수 없습니다." };
+
+  const row = db.insert(schema.studySessions).values({
+    member_id: args.memberId,
+    room_id: args.roomId,
+    started_at: args.startedAt,
+    ended_at: args.endedAt,
+    start_proof: "admin",
+    end_proof: "admin",
+    status: "approved",
+    note: args.note ?? null,
+    created_at: args.now,
+  }).returning().all()[0];
+
+  recordEdit({
+    sessionId: row.id, editorEmail: args.editorEmail,
+    before: null, after: row,
+    reason: args.note ? `관리자 추가 — ${args.note}` : "관리자 추가",
+  });
+  return { ok: true, session: row };
 }
