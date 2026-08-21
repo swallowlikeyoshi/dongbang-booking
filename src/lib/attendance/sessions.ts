@@ -91,3 +91,91 @@ export function listOpenSessions(): StudySession[] {
     .where(and(eq(schema.studySessions.status, "open"), isNull(schema.studySessions.ended_at)))
     .all();
 }
+
+export type SessionEdit = typeof schema.sessionEdits.$inferSelect;
+
+/** 원본 시각을 덮어쓰지 않고 변경 이력을 별도 행으로 쌓는다. */
+export function recordEdit(args: {
+  sessionId: number; editorEmail: string; before: StudySession; after: StudySession; reason?: string;
+}): void {
+  db.insert(schema.sessionEdits).values({
+    session_id: args.sessionId,
+    editor_email: args.editorEmail,
+    edited_at: Math.floor(Date.now() / 1000),
+    before_json: JSON.stringify(args.before),
+    after_json: JSON.stringify(args.after),
+    reason: args.reason ?? null,
+  }).run();
+}
+
+export function listEdits(sessionId: number): SessionEdit[] {
+  return db.select().from(schema.sessionEdits)
+    .where(eq(schema.sessionEdits.session_id, sessionId))
+    .all();
+}
+
+export function getSession(id: number): StudySession | null {
+  const rows = db.select().from(schema.studySessions).where(eq(schema.studySessions.id, id)).all();
+  return rows[0] ?? null;
+}
+
+/**
+ * 종료 QR 없이 10시간을 넘긴 세션을 unresolved 로 마감한다.
+ * 종료 시각은 시작 + 10시간으로 두되 집계에서는 빠지므로, 본인 신고 전까지 시간은 인정되지 않는다.
+ * 정상적으로 QR 종료한 세션은 10시간을 넘겨도 이 함수의 대상이 아니다(status 가 이미 open 이 아님).
+ */
+export function autoCloseStale(now: number): number {
+  const stale = listOpenSessions().filter((r) => now - r.started_at > MAX_OPEN_SECONDS);
+  for (const row of stale) {
+    db.update(schema.studySessions)
+      .set({ ended_at: row.started_at + MAX_OPEN_SECONDS, end_proof: null, status: "unresolved" })
+      .where(eq(schema.studySessions.id, row.id))
+      .run();
+  }
+  return stale.length;
+}
+
+/** unresolved 세션에 대해 본인이 종료 시각을 신고한다 → pending(승인 대기). */
+export function reportEndTime(args: {
+  sessionId: number; memberId: number; endedAt: number; editorEmail: string; note?: string;
+}): CloseResult {
+  const before = getSession(args.sessionId);
+  if (!before) return { ok: false, error: "세션을 찾을 수 없습니다." };
+  if (before.member_id !== args.memberId) return { ok: false, error: "본인 기록만 신고할 수 있습니다." };
+  if (before.status !== "unresolved") return { ok: false, error: "미확정 상태의 기록만 신고할 수 있습니다." };
+  if (args.endedAt <= before.started_at) return { ok: false, error: "종료 시각이 시작 시각보다 빠릅니다." };
+
+  const after = { ...before, ended_at: args.endedAt, end_proof: "manual", status: "pending", note: args.note ?? null };
+  db.update(schema.studySessions)
+    .set({ ended_at: args.endedAt, end_proof: "manual", status: "pending", note: args.note ?? null })
+    .where(eq(schema.studySessions.id, args.sessionId))
+    .run();
+  recordEdit({ sessionId: args.sessionId, editorEmail: args.editorEmail, before, after, reason: args.note });
+  return { ok: true, session: after };
+}
+
+/** 관리자가 pending 세션을 승인/거부한다. */
+export function reviewSession(args: {
+  sessionId: number; approve: boolean; editorEmail: string; reason?: string;
+}): CloseResult {
+  const before = getSession(args.sessionId);
+  if (!before) return { ok: false, error: "세션을 찾을 수 없습니다." };
+  const status = args.approve ? "approved" : "rejected";
+  const after = { ...before, status };
+  db.update(schema.studySessions).set({ status }).where(eq(schema.studySessions.id, args.sessionId)).run();
+  recordEdit({ sessionId: args.sessionId, editorEmail: args.editorEmail, before, after, reason: args.reason });
+  return { ok: true, session: after };
+}
+
+export function listPendingReview(): StudySession[] {
+  return db.select().from(schema.studySessions)
+    .where(eq(schema.studySessions.status, "pending"))
+    .orderBy(desc(schema.studySessions.started_at))
+    .all();
+}
+
+export function listUnresolvedByMember(memberId: number): StudySession[] {
+  return db.select().from(schema.studySessions)
+    .where(and(eq(schema.studySessions.member_id, memberId), eq(schema.studySessions.status, "unresolved")))
+    .all();
+}
