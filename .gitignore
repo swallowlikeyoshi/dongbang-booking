@@ -10,3 +10,6 @@ next-env.d.ts
 .superpowers
 .claude
 *.tsbuildinfo
+
+firmware/study-qr/src/config.h
+firmware/study-qr/.pio

@@ -19,7 +19,7 @@
 - 종료 없이 **10시간(36000초)** 초과 시 자동 마감 → `unresolved`. 이 규칙은 **종료 QR이 없는 세션에만** 적용한다.
 - 집계 포함 상태: `confirmed`, `pending`, `approved`. 제외: `open`, `unresolved`, `rejected`.
 - 장비 2대 = `room_id` 1(공학실습동 24214) · 2(학생회관 03324). 공작실(3번)은 장비 없음 — 1번으로 집계된다.
-- 시드 대상은 **세부팀이 배정된 전기팀원 57명**. 명부의 연락처·학과·학기·복수전공은 **적재하지 않는다**.
+- 시드 대상은 **세부팀이 배정된 전기팀원 58명**. 스터디 시트는 최신본을 쓴다(repo 사본은 5월 4일자로 오래됨). 명부의 연락처·학과·학기·복수전공은 **적재하지 않는다**.
 - 세부팀 4종 고정: `계기 및 데이터` `배터리 및 전원` `배선 및 하네스` `토크 벡터링`.
 - 세부팀 색상(라이트 고정): `#2a78d6` / `#eb6834` / `#1baf7a` / `#4a3aa7`.
 - 시각은 전부 **초 단위 Unix timestamp(integer)**. 기존 `reservations` 규약과 동일하다.
@@ -288,10 +288,10 @@ print(f"wrote data/roster.csv: {len(out)} members")
 - [ ] **Step 10: 변환 실행 및 검증**
 
 ```bash
-uvx --from openpyxl python scripts/roster-to-csv.py "$HOME/Downloads/2026년 1학기 헤븐 활동 회원 명부.xlsx" "$HOME/Documents/Documents - MacBook Pro dk/00_Projects/HEVEN/2026/2026 스터디 참여시간.xlsx"
+uvx --from openpyxl python scripts/roster-to-csv.py "$HOME/Downloads/2026년 1학기 헤븐 활동 회원 명부.xlsx" "$HOME/Downloads/2026 스터디 참여시간-3.xlsx"
 ```
 
-Expected: `wrote data/roster.csv: 57 members`. 57이 아니면 멈추고 원인을 확인한다.
+Expected: `wrote data/roster.csv: 58 members`. 58이 아니면 멈추고 원인을 확인한다.
 
 - [ ] **Step 11: 시드 스크립트 작성**
 
@@ -330,7 +330,7 @@ console.log(`seed-members done: +${added}`);
 npm run migrate && npm run seed:members
 ```
 
-Expected: `seed-members done: +57`. 재실행하면 `+0` (멱등).
+Expected: `seed-members done: +58`. 재실행하면 `+0` (멱등).
 
 - [ ] **Step 13: 커밋**
 

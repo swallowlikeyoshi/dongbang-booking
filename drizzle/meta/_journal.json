@@ -15,6 +15,48 @@
       "when": 1786121377958,
       "tag": "0001_stale_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787286708186,
+      "tag": "0002_happy_killer_shrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787287192514,
+      "tag": "0003_sudden_sentry",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787287352781,
+      "tag": "0004_ambiguous_lionheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787290318002,
+      "tag": "0005_luxuriant_wendell_vaughn",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1787293030968,
+      "tag": "0006_unknown_bedlam",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1787303968913,
+      "tag": "0007_dear_rage",
+      "breakpoints": true
     }
   ]
 }

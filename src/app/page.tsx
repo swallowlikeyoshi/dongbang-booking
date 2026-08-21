@@ -28,6 +28,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ w
         <h1 className="text-base font-bold sm:text-xl">HEVEN 동아리방 예약 시트</h1>
         <div className="flex items-center gap-3">
           <a href="/my" className="text-sm text-blue-600">내 예약</a>
+          <a href="/study" className="text-sm text-blue-600">스터디 시간</a>
           {sessionUser?.isAdmin && <a href="/admin" className="text-sm text-blue-600">관리자</a>}
           <a
             href="https://github.com/swallowlikeyoshi/dongbang-booking"

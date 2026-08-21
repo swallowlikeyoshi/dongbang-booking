@@ -15,3 +15,23 @@ export const TEAM_COLORS: Record<Team, string> = {
   자율차팀: "bg-emerald-600",
   기타: "bg-slate-500",
 };
+
+export const SUB_TEAMS = [
+  "계기 및 데이터",
+  "배터리 및 전원",
+  "배선 및 하네스",
+  "토크 벡터링",
+] as const;
+export type SubTeam = (typeof SUB_TEAMS)[number];
+
+/** 세부팀 색상. 색각 이상 시뮬레이션 포함 전 조합 분리도 검증을 통과한 조합. */
+export const SUB_TEAM_COLORS: Record<SubTeam, string> = {
+  "계기 및 데이터": "#2a78d6",
+  "배터리 및 전원": "#eb6834",
+  "배선 및 하네스": "#1baf7a",
+  "토크 벡터링": "#4a3aa7",
+};
+
+/** 참여 대회. 세부팀장은 두 대회를 모두 뛴다. 미배정은 null. */
+export const COMPETITIONS = ["영광", "화성", "세부팀장"] as const;
+export type Competition = (typeof COMPETITIONS)[number];

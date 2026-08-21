@@ -9,6 +9,7 @@
     "start": "next start",
     "migrate": "tsx src/lib/db/migrate.ts",
     "db:generate": "drizzle-kit generate",
+    "seed:members": "tsx src/lib/db/seed-members.ts",
     "lint": "eslint",
     "test": "vitest run"
   },
