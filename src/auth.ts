@@ -5,6 +5,11 @@ import { isAdmin } from "@/lib/admin";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
   trustHost: true,
+  session: {
+    strategy: "jwt",
+    maxAge: 365 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
+  },
 });
 
 export async function getSessionUser() {
