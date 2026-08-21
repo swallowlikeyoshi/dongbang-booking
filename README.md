@@ -72,3 +72,44 @@ Funnel은 443 / 8443 / 10000만 지원한다. 예: ksae-notice가 443을 쓰면 
 tailscale funnel --bg --https=8443 http://127.0.0.1:3001
 ```
 `AUTH_URL`과 구글 콘솔의 리디렉션 URI에 **포트까지** 포함해야 한다.
+
+## 스터디 시간 기록
+
+설계: `docs/superpowers/specs/2026-08-21-study-time-tracking-design.md`
+
+개인정보 취급 주의: 아래 절차에서 만들어지는 `data/roster.csv`(학번 원장)와
+`firmware/study-qr/src/config.h`(장비 시크릿)는 **repo 에 절대 커밋하지 않는다**.
+둘 다 `.gitignore`에 이미 등록되어 있다.
+
+### 최초 설정 (순서대로)
+
+```bash
+# 1. 학번 원장 CSV 생성 — data/ 아래에만 둔다. repo 에 커밋 금지.
+uvx --from openpyxl python scripts/roster-to-csv.py \
+  "$HOME/Downloads/2026년 1학기 헤븐 활동 회원 명부.xlsx" \
+  "$HOME/Downloads/2026 스터디 참여시간-3.xlsx"
+
+# 2. 마이그레이션 → 시드 (이 순서로. 시드 대상은 세부팀이 배정된 전기팀원 58명)
+npm run migrate && npm run seed:members
+
+# 3. .env 에 ATTENDANCE_DEVICE_SECRETS 설정 후 재시작
+#    (장비 2대 = room_id 1: 공학실습동 24214, room_id 2: 학생회관 03324)
+```
+
+장비 펌웨어는 `firmware/study-qr/` 참조 — `src/config.h.example`을 `src/config.h`로
+복사하고 값을 채운다(`config.h`도 커밋 금지). 장비의 `DEVICE_SECRET`은
+`ATTENDANCE_DEVICE_SECRETS`의 해당 방 시크릿과 같아야 한다. 화면 문구가 전부 영문인
+이유와 "기본 카메라로 스캔" 같은 한글 안내를 인쇄 라벨로 대체하는 이유는
+`firmware/study-qr/README.md`를 참조.
+
+### 화면
+
+| 경로 | 내용 |
+|------|------|
+| `/c/<코드>` | QR 스캔 진입점. 체크인/체크아웃 자동 판정 |
+| `/c/apply/<pending>` | 미확정 신고 접수 |
+| `/onboarding` | 학번 등록 (최초 1회) |
+| `/study` | 내 현황 — 잔디, 기록, 수정 이력, 미확정 신고 |
+| `/study/ranking` | 전체 순위 (엔트리 컷 라인) |
+| `/study/teams` | 세부팀별 히트맵 |
+| `/admin/study` | 승인 큐, 장비 상태, 설정, CSV 내보내기 |
