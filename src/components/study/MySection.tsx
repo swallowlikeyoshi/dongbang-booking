@@ -7,9 +7,11 @@ import type { Member } from "@/lib/db/members";
 import ContributionGrid from "@/components/attendance/ContributionGrid";
 import { formatDuration } from "@/lib/attendance/format";
 import UnresolvedReport from "@/components/attendance/UnresolvedReport";
+import DeleteSessionButton from "@/components/attendance/DeleteSessionButton";
 
 const STATUS_LABEL: Record<string, string> = {
   open: "진행 중",
+  deleted: "삭제됨",
   confirmed: "QR 종료",
   pending: "보정 승인 대기",
   approved: "보정 승인됨",
@@ -38,11 +40,13 @@ export default function MySection({ member }: { member: Member }) {
   const color = SUB_TEAM_COLORS[member.sub_team as SubTeam] ?? "#2a78d6";
 
   // 미확정 기록은 본인이 신고해야 시간이 인정되므로 잘려서 숨으면 안 된다.
-  const unresolved = sessions.filter((s) => s.status === "unresolved");
-  const pendingCount = sessions.filter((s) => s.status === "pending").length;
-  const recent = sessions.slice(0, RECENT_LIMIT);
+  const deleted = sessions.filter((s) => s.status === "deleted");
+  const live = sessions.filter((s) => s.status !== "deleted");
+  const unresolved = live.filter((s) => s.status === "unresolved");
+  const pendingCount = live.filter((s) => s.status === "pending").length;
+  const recent = live.slice(0, RECENT_LIMIT);
   const shown = [...unresolved, ...recent.filter((s) => s.status !== "unresolved")];
-  const hidden = sessions.length - shown.length;
+  const hidden = live.length - shown.length;
 
   return (
     <section id="me" className="scroll-mt-20 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -96,6 +100,7 @@ export default function MySection({ member }: { member: Member }) {
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
                   {STATUS_LABEL[s.status] ?? s.status}
                 </span>
+                <DeleteSessionButton sessionId={s.id} />
               </div>
               {s.status === "unresolved" && <UnresolvedReport sessionId={s.id} startedAt={s.started_at} />}
               {edits.length > 0 && (
@@ -115,7 +120,7 @@ export default function MySection({ member }: { member: Member }) {
         <details className="mt-2">
           <summary className="cursor-pointer text-sm text-blue-600">이전 기록 {hidden}건 더 보기</summary>
           <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
-            {sessions.slice(RECENT_LIMIT).filter((s) => s.status !== "unresolved").map((s) => (
+            {live.slice(RECENT_LIMIT).filter((s) => s.status !== "unresolved").map((s) => (
               <li key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-3">
                 <span className="flex-1">{fmt(s.started_at)}{s.ended_at ? ` – ${fmt(s.ended_at)}` : ""}</span>
                 <span className="text-slate-600">
@@ -124,6 +129,27 @@ export default function MySection({ member }: { member: Member }) {
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
                   {STATUS_LABEL[s.status] ?? s.status}
                 </span>
+                <DeleteSessionButton sessionId={s.id} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      {deleted.length > 0 && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm text-slate-500">
+            삭제한 기록 {deleted.length}건 보기
+          </summary>
+          <p className="mt-2 text-xs text-slate-400">
+            집계에서 빠진 기록입니다. 되살리려면 관리자에게 문의하세요.
+          </p>
+          <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
+            {deleted.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-3 text-slate-400">
+                <span className="flex-1 line-through">
+                  {fmt(s.started_at)}{s.ended_at ? ` – ${fmt(s.ended_at)}` : ""}
+                </span>
+                <span>{s.ended_at ? formatDuration((s.ended_at as number) - s.started_at) : "—"}</span>
               </li>
             ))}
           </ul>

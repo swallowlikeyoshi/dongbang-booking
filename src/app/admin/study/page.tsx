@@ -7,6 +7,9 @@ import { getSetting } from "@/lib/attendance/settings";
 import ReviewButtons from "@/components/attendance/ReviewButtons";
 import SettingsForm from "@/components/attendance/SettingsForm";
 import UnbindButton from "@/components/attendance/UnbindButton";
+import { memberTotals } from "@/lib/attendance/aggregate";
+import { formatDuration } from "@/lib/attendance/format";
+import MemberSessionAdmin from "@/components/attendance/MemberSessionAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +18,10 @@ function fmt(ts: number | null) {
   return new Date(ts * 1000).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export default async function AdminStudyPage() {
+export default async function AdminStudyPage({
+  searchParams,
+}: { searchParams: Promise<{ member?: string }> }) {
+  const { member: memberParam } = await searchParams;
   const user = await getSessionUser();
   if (!user) redirect("/api/auth/signin?callbackUrl=/admin/study");
   if (!user.isAdmin) redirect("/");
@@ -26,6 +32,10 @@ export default async function AdminStudyPage() {
   const members = new Map(allMembers.map((m) => [m.id, m]));
   const boundMembers = allMembers.filter((m) => m.user_email);
   const devices = deviceStatuses(now);
+  const rankedMembers = memberTotals();
+  const selectedMember = memberParam
+    ? rankedMembers.find((r) => String(r.member.id) === memberParam)?.member ?? null
+    : null;
   const memberEdits = listMemberEdits(20);
 
   return (
@@ -111,6 +121,32 @@ export default async function AdminStudyPage() {
         ))}
         {memberEdits.length === 0 && <li className="py-2 text-slate-500">없습니다.</li>}
       </ul>
+
+      <h2 className="mt-8 mb-2 text-lg">멤버별 기록</h2>
+      <p className="mb-3 text-sm text-slate-500">
+        이름을 고르면 그 사람의 전체 기록이 나옵니다. 시각 수정과 삭제는 이력이 남고,
+        삭제해도 행은 지워지지 않아 되돌릴 수 있습니다.
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {rankedMembers.map((r) => {
+          const active = String(r.member.id) === memberParam;
+          return (
+            <a
+              key={r.member.id}
+              href={active ? "/admin/study" : `/admin/study?member=${r.member.id}`}
+              className={`rounded-full border px-3 py-1 text-sm ${
+                active ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 text-slate-700"
+              }`}
+            >
+              {r.member.name}
+              <span className={active ? "ml-1 text-slate-300" : "ml-1 text-slate-400"}>
+                {formatDuration(r.countedSeconds)}
+              </span>
+            </a>
+          );
+        })}
+      </div>
+      {selectedMember && <MemberSessionAdmin member={selectedMember} />}
 
       <h2 className="mt-8 mb-2 text-lg">설정</h2>
       <SettingsForm

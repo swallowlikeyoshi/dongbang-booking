@@ -195,3 +195,93 @@ export function listUnresolvedByMember(memberId: number): StudySession[] {
     .where(and(eq(schema.studySessions.member_id, memberId), eq(schema.studySessions.status, "unresolved")))
     .all();
 }
+
+/** 삭제는 행을 지우지 않고 상태로 표시한다 — 원본과 이력이 남아야 분쟁에 답할 수 있다. */
+export const DELETED_STATUS = "deleted";
+
+/** 관리자 시각 수정의 상한. 무제한이면 오타 하나가 순위를 뒤집는다. */
+export const MAX_EDIT_SECONDS = 24 * 3600;
+
+export function listSessionsByMemberAll(memberId: number): StudySession[] {
+  return listSessionsByMember(memberId);
+}
+
+/**
+ * 본인 또는 관리자가 기록을 삭제한다. 집계에서 빠지지만 행은 남고
+ * session_edits 에 누가 지웠는지 기록된다.
+ */
+export function deleteSession(args: {
+  sessionId: number; actorEmail: string; isAdmin: boolean; actorMemberId: number | null;
+  reason?: string;
+}): CloseResult {
+  const before = getSession(args.sessionId);
+  if (!before) return { ok: false, error: "기록을 찾을 수 없습니다." };
+  if (!args.isAdmin && before.member_id !== args.actorMemberId) {
+    return { ok: false, error: "본인 기록만 삭제할 수 있습니다." };
+  }
+  if (before.status === DELETED_STATUS) {
+    return { ok: false, error: "이미 삭제된 기록입니다." };
+  }
+  const after = { ...before, status: DELETED_STATUS };
+  db.update(schema.studySessions)
+    .set({ status: DELETED_STATUS })
+    .where(eq(schema.studySessions.id, args.sessionId))
+    .run();
+  recordEdit({
+    sessionId: args.sessionId, editorEmail: args.actorEmail, before, after,
+    reason: args.reason ?? "기록 삭제",
+  });
+  return { ok: true, session: after };
+}
+
+/** 관리자가 삭제를 되돌린다. 어떤 상태로 돌아갈지는 이력이 아니라 종료 증명으로 정한다. */
+export function restoreSession(args: {
+  sessionId: number; editorEmail: string;
+}): CloseResult {
+  const before = getSession(args.sessionId);
+  if (!before) return { ok: false, error: "기록을 찾을 수 없습니다." };
+  if (before.status !== DELETED_STATUS) {
+    return { ok: false, error: "삭제된 기록만 복구할 수 있습니다." };
+  }
+  const status = before.ended_at === null
+    ? "open"
+    : before.end_proof === "qr" || before.end_proof === "import"
+      ? "confirmed"
+      : "pending";
+  const after = { ...before, status };
+  db.update(schema.studySessions).set({ status })
+    .where(eq(schema.studySessions.id, args.sessionId)).run();
+  recordEdit({ sessionId: args.sessionId, editorEmail: args.editorEmail, before, after, reason: "삭제 복구" });
+  return { ok: true, session: after };
+}
+
+/** 관리자가 시작·종료 시각을 고친다. 원본 시각은 session_edits 에 남는다. */
+export function editSessionTimes(args: {
+  sessionId: number; startedAt: number; endedAt: number; editorEmail: string;
+  now: number; reason?: string;
+}): CloseResult {
+  const before = getSession(args.sessionId);
+  if (!before) return { ok: false, error: "기록을 찾을 수 없습니다." };
+  if (!Number.isFinite(args.startedAt) || !Number.isFinite(args.endedAt)) {
+    return { ok: false, error: "시각이 올바르지 않습니다." };
+  }
+  if (args.endedAt <= args.startedAt) {
+    return { ok: false, error: "종료 시각이 시작 시각보다 뒤여야 합니다." };
+  }
+  if (args.startedAt > args.now || args.endedAt > args.now) {
+    return { ok: false, error: "미래 시각은 입력할 수 없습니다." };
+  }
+  if (args.endedAt - args.startedAt > MAX_EDIT_SECONDS) {
+    return { ok: false, error: "한 기록은 24시간을 넘을 수 없습니다." };
+  }
+  const after = { ...before, started_at: args.startedAt, ended_at: args.endedAt };
+  db.update(schema.studySessions)
+    .set({ started_at: args.startedAt, ended_at: args.endedAt })
+    .where(eq(schema.studySessions.id, args.sessionId))
+    .run();
+  recordEdit({
+    sessionId: args.sessionId, editorEmail: args.editorEmail, before, after,
+    reason: args.reason ?? "시각 수정",
+  });
+  return { ok: true, session: after };
+}
