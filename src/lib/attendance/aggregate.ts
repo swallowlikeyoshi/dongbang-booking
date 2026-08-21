@@ -104,6 +104,8 @@ export function teamDailyBuckets(fromTs: number, toTs: number): Record<SubTeam, 
   for (const r of countedRows()) {
     if (r.started_at < fromTs || r.started_at > toTs) continue;
     const team = teamOf.get(r.member_id);
+    // sub_team 은 신입 명부/온보딩 단계에서 SUB_TEAMS 4종으로 제약된다.
+    // 여기서 매칭되지 않는 값은 데이터 이상치로 간주하고 조용히 건너뛴다(로깅/throw 안 함).
     if (!team || !out[team]) continue;
     const k = dateKey(r.started_at);
     out[team][k] = (out[team][k] ?? 0) + ((r.ended_at as number) - r.started_at);

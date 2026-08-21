@@ -5,6 +5,7 @@ process.env.DATABASE_PATH = ":memory:";
 const a = await import("./aggregate");
 const { db, schema } = await import("@/lib/db/index");
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { weekStart } from "@/lib/week";
 
 const T0 = 1_700_000_000;
 
@@ -63,6 +64,32 @@ describe("aggregate", () => {
     const r = a.memberTotals({ weeklyCapSeconds: 5 * 3600 })[0];
     expect(r.rawSeconds).toBe(10 * 3600);
     expect(r.countedSeconds).toBe(5 * 3600);
+  });
+
+  test("주간 상한: 서로 다른 주에 걸치면 각 주가 상한 이하여도 합산은 그대로 카운트된다", () => {
+    // 이 테스트는 상한이 "주 단위"로 적용됨을 증명한다 — 전체합에 상한을 씌우는
+    // 회귀(countedSeconds = min(rawSeconds, cap))로는 통과할 수 없어야 한다.
+    const weekAStart = weekStart(T0);
+    const weekBStart = weekAStart + 7 * 24 * 3600;
+
+    addSession(1, weekAStart + 3600, weekAStart + 3600 + 4 * 3600, "confirmed"); // 주 A: 4h
+    addSession(1, weekBStart + 3600, weekBStart + 3600 + 4 * 3600, "confirmed"); // 주 B: 4h
+
+    const r = a.memberTotals({ weeklyCapSeconds: 5 * 3600 })[0];
+    expect(r.rawSeconds).toBe(8 * 3600);
+    expect(r.countedSeconds).toBe(8 * 3600);
+  });
+
+  test("주간 상한: 한 주는 상한에 걸리고 다른 주는 상한 미만이면 두 주 각각 계산된다", () => {
+    const weekAStart = weekStart(T0);
+    const weekBStart = weekAStart + 7 * 24 * 3600;
+
+    addSession(1, weekAStart + 3600, weekAStart + 3600 + 10 * 3600, "confirmed"); // 주 A: 10h → 5h로 상한
+    addSession(1, weekBStart + 3600, weekBStart + 3600 + 2 * 3600, "confirmed"); // 주 B: 2h → 그대로
+
+    const r = a.memberTotals({ weeklyCapSeconds: 5 * 3600 })[0];
+    expect(r.rawSeconds).toBe(12 * 3600);
+    expect(r.countedSeconds).toBe(7 * 3600);
   });
 
   test("기록 없는 멤버는 목록에 없다", () => {
