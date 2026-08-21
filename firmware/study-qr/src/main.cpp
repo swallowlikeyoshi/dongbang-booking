@@ -99,15 +99,20 @@ static bool syncTime() {
 }
 
 static void sendHeartbeat(const char *code) {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[hb] skipped — wifi down");
+    return;
+  }
   HTTPClient http;
   http.begin(HEARTBEAT_URL);
   http.addHeader("Content-Type", "application/json");
   char body[160];
   snprintf(body, sizeof(body), "{\"code\":\"%s\",\"firmware\":\"%s\"}", code, FIRMWARE_VER);
   int status = http.POST(body);
+  Serial.printf("[hb] POST -> %d\n", status);
   if (status == 200) {
     String payload = http.getString();
+    Serial.printf("[hb] body=%s\n", payload.c_str());
     int idx = payload.indexOf("\"occupancy\":");
     if (idx >= 0) occupancy = payload.substring(idx + 12).toInt();
   } else {
@@ -119,15 +124,32 @@ static void sendHeartbeat(const char *code) {
 
 void setup() {
   Serial.begin(115200);
+  delay(200);
+  Serial.println();
+  Serial.printf("[boot] %s room=%s\n", FIRMWARE_VER, ROOM_NAME);
+
   tft.init();
   tft.setRotation(0);
   tft.fillScreen(TFT_WHITE);
   drawHeader();
+  Serial.println("[tft] init done");
 
+  Serial.printf("[wifi] connecting to %s ", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  for (int i = 0; i < 60 && WiFi.status() != WL_CONNECTED; i++) delay(500);
+  for (int i = 0; i < 60 && WiFi.status() != WL_CONNECTED; i++) {
+    delay(500);
+    if (i % 4 == 0) Serial.print(".");
+  }
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("[wifi] connected, ip=");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.printf("[wifi] FAILED (status=%d)\n", WiFi.status());
+  }
 
   timeReady = syncTime();
+  Serial.printf("[ntp] %s\n", timeReady ? "ok" : "FAILED");
   if (!timeReady) drawTimeError();
 }
 
@@ -143,6 +165,7 @@ void loop() {
     lastSync = millis();
     if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
     bool ok = syncTime();
+    Serial.printf("[ntp] resync %s (wifi=%d)\n", ok ? "ok" : "FAILED", WiFi.status());
     if (ok && !timeReady) { tft.fillScreen(TFT_WHITE); drawHeader(); lastSlot = -1; }
     timeReady = ok;
     if (!timeReady) drawTimeError();
@@ -155,6 +178,7 @@ void loop() {
     lastSlot = slot;
     char code[CODE_LENGTH + 1];
     codeForSlot(slot, code);
+    Serial.printf("[qr] slot=%ld code=%s url=%s%s\n", slot, code, BASE_URL, code);
     drawQr(code);
     drawFooter(code);
 
