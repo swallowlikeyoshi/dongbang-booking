@@ -110,6 +110,9 @@ static void sendHeartbeat(const char *code) {
     String payload = http.getString();
     int idx = payload.indexOf("\"occupancy\":");
     if (idx >= 0) occupancy = payload.substring(idx + 12).toInt();
+  } else {
+    // 하트비트 실패 시 화면에 남은 재실 인원이 오래된 값일 수 있으므로 지운다.
+    occupancy = -1;
   }
   http.end();
 }
@@ -129,9 +132,14 @@ void setup() {
 }
 
 void loop() {
-  // 1시간마다 재동기화. RTC 가 없어 드리프트가 누적된다.
+  // 시각을 모르는 동안은 30초마다 재시도하고, 한 번 맞춘 뒤에는 1시간마다 재동기화한다
+  // (RTC 가 없어 드리프트가 누적됨). 부팅 시 동기화가 실패하면 다음 재시도까지
+  // 최대 1시간을 그냥 흘려보내던 문제를 막기 위함 — 무인 장비라 아무도 재부팅해주지 않는다.
   static unsigned long lastSync = 0;
-  if (millis() - lastSync > 3600UL * 1000UL) {
+  const unsigned long RESYNC_INTERVAL_MS = 3600UL * 1000UL;
+  const unsigned long RETRY_INTERVAL_MS = 30UL * 1000UL;
+  unsigned long syncInterval = timeReady ? RESYNC_INTERVAL_MS : RETRY_INTERVAL_MS;
+  if (millis() - lastSync > syncInterval) {
     lastSync = millis();
     if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
     bool ok = syncTime();
