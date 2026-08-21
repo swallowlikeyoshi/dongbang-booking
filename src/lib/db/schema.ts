@@ -18,3 +18,15 @@ export const reservations = sqliteTable("reservations", {
   /** 매주 반복으로 만든 예약들을 묶는 키. 단발 예약은 null. */
   series_id: text("series_id"),
 });
+
+export const members = sqliteTable("members", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  student_no: text("student_no").notNull().unique(),
+  name: text("name").notNull(),
+  sub_team: text("sub_team").notNull(),
+  /** 구글 계정 클레임 전에는 null. 클레임 후 유일. */
+  user_email: text("user_email").unique(),
+  /** seeded = 원장에서 시드됨, pending = 원장에 없어 승인 대기 */
+  status: text("status").notNull().default("seeded"),
+  created_at: integer("created_at").notNull(),
+});

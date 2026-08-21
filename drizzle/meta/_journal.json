@@ -15,6 +15,13 @@
       "when": 1786121377958,
       "tag": "0001_stale_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787286708186,
+      "tag": "0002_happy_killer_shrike",
+      "breakpoints": true
     }
   ]
 }
