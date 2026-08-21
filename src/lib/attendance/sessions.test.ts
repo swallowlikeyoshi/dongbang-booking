@@ -15,7 +15,7 @@ describe("sessions", () => {
     db.delete(schema.usedCodes).run();
     db.delete(schema.members).run();
     db.insert(schema.members).values({
-      id: 1, student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", created_at: 0,
+      id: 1, student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", created_at: 0,
     }).run();
   });
 
@@ -59,7 +59,7 @@ describe("sessions", () => {
 
   test("다른 멤버는 같은 슬롯을 소각할 수 있다", () => {
     db.insert(schema.members).values({
-      id: 2, student_no: "2022313526", name: "곽효건", sub_team: "배선 및 하네스", created_at: 0,
+      id: 2, student_no: "2099310002", name: "김철수", sub_team: "배선 및 하네스", created_at: 0,
     }).run();
     expect(s.burnCode(1, 100, T0)).toBe(true);
     expect(s.burnCode(2, 100, T0)).toBe(true);

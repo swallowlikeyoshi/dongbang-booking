@@ -55,7 +55,7 @@ export default function OnboardingForm({ pending }: { pending: string | null }) 
               inputMode="numeric"
               value={studentNo}
               onChange={(e) => { setStudentNo(e.target.value.replace(/\D/g, "")); setError(""); }}
-              placeholder="2025312077"
+              placeholder="2099310001"
             />
           </label>
           <button className="w-full rounded bg-slate-900 px-4 py-2 text-white" disabled={busy} onClick={lookup}>

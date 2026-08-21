@@ -129,32 +129,32 @@ describe("members", () => {
     migrate(db as never, { migrationsFolder: "./drizzle" });
     db.delete(schema.members).run();
     db.insert(schema.members).values([
-      { student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", created_at: 0 },
-      { student_no: "2022313526", name: "곽효건", sub_team: "배선 및 하네스", created_at: 0 },
+      { student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", created_at: 0 },
+      { student_no: "2099310002", name: "김철수", sub_team: "배선 및 하네스", created_at: 0 },
     ]).run();
   });
 
   test("학번으로 조회", () => {
-    expect(m.getMemberByStudentNo("2025312077")?.name).toBe("김도현");
+    expect(m.getMemberByStudentNo("2099310001")?.name).toBe("홍길동");
     expect(m.getMemberByStudentNo("9999999999")).toBeNull();
   });
 
   test("클레임하면 이메일로 조회된다", () => {
-    const r = m.claimMember({ studentNo: "2025312077", email: "a@b.com" });
+    const r = m.claimMember({ studentNo: "2099310001", email: "a@b.com" });
     expect(r.ok).toBe(true);
-    expect(m.getMemberByEmail("a@b.com")?.student_no).toBe("2025312077");
+    expect(m.getMemberByEmail("a@b.com")?.student_no).toBe("2099310001");
   });
 
   test("이미 클레임된 학번은 거절", () => {
-    m.claimMember({ studentNo: "2025312077", email: "a@b.com" });
-    const r = m.claimMember({ studentNo: "2025312077", email: "c@d.com" });
+    m.claimMember({ studentNo: "2099310001", email: "a@b.com" });
+    const r = m.claimMember({ studentNo: "2099310001", email: "c@d.com" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("이미");
   });
 
   test("한 계정이 두 학번을 클레임할 수 없다", () => {
-    m.claimMember({ studentNo: "2025312077", email: "a@b.com" });
-    const r = m.claimMember({ studentNo: "2022313526", email: "a@b.com" });
+    m.claimMember({ studentNo: "2099310001", email: "a@b.com" });
+    const r = m.claimMember({ studentNo: "2099310002", email: "a@b.com" });
     expect(r.ok).toBe(false);
   });
 
@@ -607,7 +607,7 @@ describe("sessions", () => {
     db.delete(schema.usedCodes).run();
     db.delete(schema.members).run();
     db.insert(schema.members).values({
-      id: 1, student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", created_at: 0,
+      id: 1, student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", created_at: 0,
     }).run();
   });
 
@@ -651,7 +651,7 @@ describe("sessions", () => {
 
   test("다른 멤버는 같은 슬롯을 소각할 수 있다", () => {
     db.insert(schema.members).values({
-      id: 2, student_no: "2022313526", name: "곽효건", sub_team: "배선 및 하네스", created_at: 0,
+      id: 2, student_no: "2099310002", name: "김철수", sub_team: "배선 및 하네스", created_at: 0,
     }).run();
     expect(s.burnCode(1, 100, T0)).toBe(true);
     expect(s.burnCode(2, 100, T0)).toBe(true);
@@ -807,7 +807,7 @@ describe("자동 마감", () => {
     db.delete(schema.sessionEdits).run();
     db.delete(schema.members).run();
     db.insert(schema.members).values({
-      id: 1, student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", created_at: 0,
+      id: 1, student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", created_at: 0,
     }).run();
   });
 
@@ -1271,7 +1271,7 @@ describe("scan", () => {
     db.delete(schema.usedCodes).run();
     db.delete(schema.members).run();
     db.insert(schema.members).values({
-      id: 1, student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", user_email: "a@b.com", created_at: 0,
+      id: 1, student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", user_email: "a@b.com", created_at: 0,
     }).run();
   });
 
@@ -1694,7 +1694,7 @@ export default function OnboardingForm({ pending }: { pending: string | null }) 
               inputMode="numeric"
               value={studentNo}
               onChange={(e) => { setStudentNo(e.target.value.replace(/\D/g, "")); setError(""); }}
-              placeholder="2025312077"
+              placeholder="2099310001"
             />
           </label>
           <button className="w-full rounded bg-slate-900 px-4 py-2 text-white" disabled={busy} onClick={lookup}>

@@ -17,7 +17,7 @@ describe("scan", () => {
     db.delete(schema.usedCodes).run();
     db.delete(schema.members).run();
     db.insert(schema.members).values({
-      id: 1, student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", user_email: "a@b.com", created_at: 0,
+      id: 1, student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", user_email: "a@b.com", created_at: 0,
     }).run();
   });
 

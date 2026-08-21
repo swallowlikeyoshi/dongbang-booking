@@ -15,7 +15,7 @@ describe("자동 마감", () => {
     db.delete(schema.sessionEdits).run();
     db.delete(schema.members).run();
     db.insert(schema.members).values({
-      id: 1, student_no: "2025312077", name: "김도현", sub_team: "토크 벡터링", created_at: 0,
+      id: 1, student_no: "2099310001", name: "홍길동", sub_team: "토크 벡터링", created_at: 0,
     }).run();
   });
 
