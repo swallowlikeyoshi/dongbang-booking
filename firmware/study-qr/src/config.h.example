@@ -24,12 +24,11 @@
 #define PIN_TFT_RST     16
 #define PIN_TFT_SCLK    21
 #define PIN_TFT_MOSI    19
-#define PIN_TFT_MISO    22   // 읽기는 안 쓰지만 SPI.begin 에 넘긴다
 
-// 0 = 세로(240x320), 1 = 가로(320x240)
-#define TFT_ROTATION    0
-#define SCREEN_W        240
-#define SCREEN_H        320
+// ILI9225 는 176x220. 0 = 세로.
+#define TFT_ORIENTATION 0
+#define SCREEN_W        176
+#define SCREEN_H        220
+#define HEADER_H        14
+#define FOOTER_H        26
 
-// 패널 색이 반전되어 보이면 주석을 해제한다(클러스터 모듈이 이 경우).
-// #define TFT_INVERT    1

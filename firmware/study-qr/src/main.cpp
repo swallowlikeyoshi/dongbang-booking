@@ -1,9 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
+#include <TFT_22_ILI9225.h>
 #include <qrcode.h>
 #include <mbedtls/md.h>
 #include <time.h>
@@ -15,16 +13,16 @@ static const char *ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 static const int SLOT_SECONDS = 60;
 static const int CODE_LENGTH = 6;
 
-static Adafruit_ILI9341 tft(PIN_TFT_CS, PIN_TFT_DC, PIN_TFT_RST);
+// 4인자 하드웨어 SPI 생성자. 5인자 쪽은 마지막 인자가 LED 핀으로 잘못 해석된다.
+static TFT_22_ILI9225 tft = TFT_22_ILI9225(PIN_TFT_RST, PIN_TFT_DC, PIN_TFT_CS, (uint8_t)0);
 
-/** Adafruit_GFX 에는 정렬 개념이 없어 폭을 재서 직접 가운데로 놓는다. */
-static void drawCentered(const char *s, int y, uint8_t size, uint16_t fg) {
-  int16_t bx, by; uint16_t bw, bh;
-  tft.setTextSize(size);
-  tft.setTextColor(fg, ILI9341_WHITE);
-  tft.getTextBounds(s, 0, 0, &bx, &by, &bw, &bh);
-  tft.setCursor((SCREEN_W - (int)bw) / 2, y);
-  tft.print(s);
+/** Terminal6x8 고정폭 기준으로 가운데 정렬한다. */
+static void drawCentered(const char *s, int y, uint16_t fg) {
+  const int charW = 6;
+  int w = (int)strlen(s) * charW;
+  int x = (SCREEN_W - w) / 2;
+  if (x < 0) x = 0;
+  tft.drawText(x, y, s, fg);
 }
 static long lastSlot = -1;
 static unsigned long lastHeartbeat = 0;
@@ -49,50 +47,58 @@ static void codeForSlot(long slot, char *out) {
 }
 
 static void drawHeader() {
-  tft.fillRect(0, 0, SCREEN_W, 24, ILI9341_WHITE);
-  drawCentered(ROOM_NAME, 5, 2, ILI9341_BLACK);
+  tft.fillRectangle(0, 0, SCREEN_W - 1, HEADER_H - 1, COLOR_WHITE);
+  tft.setFont(Terminal6x8);
+  drawCentered(ROOM_NAME, 3, COLOR_BLACK);
 }
 
 static void drawFooter(const char *code) {
-  tft.fillRect(0, SCREEN_H - 52, SCREEN_W, 52, ILI9341_WHITE);
+  tft.fillRectangle(0, SCREEN_H - FOOTER_H, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE);
+  tft.setFont(Terminal6x8);
   // ASCII만 표시 가능 (내장 폰트에 한글 글리프 없음).
   // "기본 카메라로 스캔" 안내는 화면 옆 인쇄 라벨로 대체한다.
-  drawCentered("Scan with camera app", SCREEN_H - 50, 1, ILI9341_BLACK);
+  drawCentered("Scan with camera", SCREEN_H - FOOTER_H + 3, COLOR_BLACK);
 
   char line[48];
   if (occupancy >= 0) snprintf(line, sizeof(line), "%s  now %d", code, occupancy);
   else snprintf(line, sizeof(line), "%s", code);
-  drawCentered(line, SCREEN_H - 32, 2, ILI9341_BLACK);
+  drawCentered(line, SCREEN_H - FOOTER_H + 14, COLOR_BLACK);
 }
 
 /** 시각이 틀리면 코드가 전부 어긋난다. 틀린 QR 을 띄우느니 아무것도 띄우지 않는다. */
 static void drawTimeError() {
-  tft.fillScreen(ILI9341_WHITE);
-  drawCentered("TIME SYNC FAILED", SCREEN_H / 2 - 20, 2, ILI9341_RED);
-  drawCentered("Report manually", SCREEN_H / 2 + 10, 1, ILI9341_BLACK);
+  tft.fillRectangle(0, 0, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE);
+  tft.setFont(Terminal6x8);
+  drawCentered("TIME SYNC FAILED", SCREEN_H / 2 - 12, COLOR_RED);
+  drawCentered("Report manually", SCREEN_H / 2 + 4, COLOR_BLACK);
+  lastSlot = -1;
 }
 
 static void drawQr(const char *code) {
   char url[128];
   snprintf(url, sizeof(url), "%s%s", BASE_URL, code);
 
+  // 176x220 화면에는 버전 4(33모듈)가 모듈당 5px 밖에 안 나온다.
+  // 현재 URL 길이(약 43자)는 버전 3(29모듈)에 들어가고, 그러면 모듈당 6px 로 커진다.
+  // BASE_URL 을 늘리면 버전이 올라가 QR 이 작아지므로 53자를 넘기지 않는다.
   QRCode qr;
-  uint8_t data[qrcode_getBufferSize(4)];
-  qrcode_initText(&qr, data, 4, ECC_LOW, url);
+  uint8_t data[qrcode_getBufferSize(3)];
+  qrcode_initText(&qr, data, 3, ECC_LOW, url);
 
-  const int top = 24;
-  const int bandH = SCREEN_H - 52 - top;
-  const int avail = (SCREEN_W < bandH ? SCREEN_W : bandH) - 8;
+  const int top = HEADER_H;
+  const int bandH = SCREEN_H - FOOTER_H - top;
+  const int avail = (SCREEN_W < bandH ? SCREEN_W : bandH);
   const int scale = avail / qr.size;
   const int size = qr.size * scale;
   const int ox = (SCREEN_W - size) / 2;
   const int oy = top + (bandH - size) / 2;
 
-  tft.fillRect(0, top, SCREEN_W, bandH, ILI9341_WHITE);
+  tft.fillRectangle(0, top, SCREEN_W - 1, top + bandH - 1, COLOR_WHITE);
   for (uint8_t y = 0; y < qr.size; y++) {
     for (uint8_t x = 0; x < qr.size; x++) {
       if (qrcode_getModule(&qr, x, y)) {
-        tft.fillRect(ox + x * scale, oy + y * scale, scale, scale, ILI9341_BLACK);
+        int px = ox + x * scale, py = oy + y * scale;
+        tft.fillRectangle(px, py, px + scale - 1, py + scale - 1, COLOR_BLACK);
       }
     }
   }
@@ -135,17 +141,12 @@ void setup() {
   Serial.println();
   Serial.printf("[boot] %s room=%s\n", FIRMWARE_VER, ROOM_NAME);
 
-  SPI.begin(PIN_TFT_SCLK, PIN_TFT_MISO, PIN_TFT_MOSI, PIN_TFT_CS);
   tft.begin();
-  tft.setRotation(TFT_ROTATION);
-#ifdef TFT_INVERT
-  tft.invertDisplay(true);
-#endif
-  tft.fillScreen(ILI9341_WHITE);
+  tft.setOrientation(TFT_ORIENTATION);
+  tft.fillRectangle(0, 0, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE);
   drawHeader();
-  Serial.printf("[tft] begin ok  %dx%d  CS=%d DC=%d RST=%d SCLK=%d MOSI=%d\n",
-                SCREEN_W, SCREEN_H, PIN_TFT_CS, PIN_TFT_DC, PIN_TFT_RST,
-                PIN_TFT_SCLK, PIN_TFT_MOSI);
+  Serial.printf("[tft] begin ok  %dx%d  RST=%d RS=%d CS=%d\n",
+                tft.maxX(), tft.maxY(), PIN_TFT_RST, PIN_TFT_DC, PIN_TFT_CS);
 
   Serial.printf("[wifi] connecting to %s ", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -179,7 +180,7 @@ void loop() {
     if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
     bool ok = syncTime();
     Serial.printf("[ntp] resync %s (wifi=%d)\n", ok ? "ok" : "FAILED", WiFi.status());
-    if (ok && !timeReady) { tft.fillScreen(ILI9341_WHITE); drawHeader(); lastSlot = -1; }
+    if (ok && !timeReady) { tft.fillRectangle(0, 0, SCREEN_W - 1, SCREEN_H - 1, COLOR_WHITE); drawHeader(); lastSlot = -1; }
     timeReady = ok;
     if (!timeReady) drawTimeError();
   }
