@@ -46,11 +46,49 @@ describe("validateSettingInput", () => {
 
   it("rejects a non-numeric value", () => {
     const r = validateSettingInput({ key: "entry_quota", value: "abc" });
-    expect(r).toEqual({ ok: false, error: "숫자를 입력해주세요." });
+    expect(r).toEqual({ ok: false, error: "1 이상의 정수를 입력해주세요." });
   });
 
   it("rejects a null body", () => {
     const r = validateSettingInput(null);
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("validateSettingInput — positive integer only (F4)", () => {
+  it("accepts an empty value (unset)", () => {
+    expect(validateSettingInput({ key: "weekly_cap_hours", value: "" })).toEqual({
+      ok: true,
+      key: "weekly_cap_hours",
+      value: "",
+    });
+  });
+
+  it("accepts a positive integer", () => {
+    expect(validateSettingInput({ key: "entry_quota", value: "20" })).toEqual({
+      ok: true,
+      key: "entry_quota",
+      value: "20",
+    });
+  });
+
+  it("rejects zero", () => {
+    const r = validateSettingInput({ key: "weekly_cap_hours", value: "0" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects a negative value", () => {
+    const r = validateSettingInput({ key: "weekly_cap_hours", value: "-5" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects a float", () => {
+    const r = validateSettingInput({ key: "weekly_cap_hours", value: "2.5" });
+    expect(r.ok).toBe(false);
+  });
+
+  it("rejects a non-numeric value", () => {
+    const r = validateSettingInput({ key: "entry_quota", value: "abc" });
     expect(r.ok).toBe(false);
   });
 });

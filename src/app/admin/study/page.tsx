@@ -44,13 +44,16 @@ export default async function AdminStudyPage() {
       <h2 className="mt-8 mb-2 text-lg">승인 대기 {pending.length}건</h2>
       <ul className="divide-y">
         {pending.map((s) => {
+          // 이 태그는 "지금 이 순간" 장비가 오프라인인지만 보여준다. 세션 당시
+          // 장비 상태는 하트비트 이력을 저장하지 않아 알 수 없다 — 과거 상태를
+          // 이 값으로 추론하지 말 것.
           const offlineTag = devices.find((d) => d.roomId === s.room_id && !d.online);
           return (
             <li key={s.id} className="flex flex-wrap items-center gap-3 py-3">
               <span className="flex-1">
                 {members.get(s.member_id)?.name ?? `#${s.member_id}`} · {fmt(s.started_at)} – {fmt(s.ended_at)}
                 {s.note ? ` · ${s.note}` : ""}
-                {offlineTag && <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">장비 장애</span>}
+                {offlineTag && <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">장비 현재 오프라인</span>}
                 {s.report_lat !== null && s.report_lng !== null && (
                   <a
                     className="ml-2 text-xs underline"
