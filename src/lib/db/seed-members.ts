@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { db, schema } from "./index";
 import { getMemberByStudentNo } from "./members";
-import { SUB_TEAMS } from "@/lib/constants";
+import { SUB_TEAMS } from "../constants";
 
 const csvPath = process.env.ROSTER_CSV ?? "./data/roster.csv";
 const text = fs.readFileSync(csvPath, "utf-8").trim();

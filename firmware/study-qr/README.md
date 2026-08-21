@@ -4,18 +4,41 @@ LOLIN D32 + 2.4" ILI9341(240×320) SPI. 60초마다 서명된 6자리 코드를 
 
 ## 배선
 
-| ILI9341 | LOLIN D32 |
+핀 번호는 `src/config.h` 에 있다(빌드 플래그가 아니라). 배선이 다른 장비를 만들면 그 파일만 고치면 된다.
+아래 값은 클러스터 PCB(HEVEN `firmware/cluster` origin/main)에서 실물 검증된 배정이다.
+
+| ILI9341 모듈 | ESP32 |
 |---------|-----------|
 | VCC | 3V3 |
 | GND | GND |
-| CS | GPIO5 |
-| RST | GPIO4 |
-| DC(RS) | GPIO2 |
-| SDI(MOSI) | GPIO23 |
-| CLK | GPIO18 |
-| LED | GPIO15 |
+| CS | GPIO4 |
+| RESET | GPIO16 |
+| D/C (RS) | GPIO5 |
+| SDI (MOSI) | GPIO19 |
+| SCK (CLK) | GPIO21 |
+| SDO (MISO) | GPIO22 (읽기는 안 쓰지만 SPI.begin 에 넘긴다) |
+| LED | 3V3 직결 |
 
-둘 다 3.3V라 레벨시프터가 필요 없다. 모듈의 SD 슬롯은 쓰지 않는다.
+모듈 실크와 표기가 다르니 주의: 실크의 `D/C` 가 DC, `RESET` 이 RST 다. 이 둘이 바뀌면
+백라이트만 켜진 백색 화면이 되고 다른 증상은 나오지 않는다.
+
+**라이브러리는 Adafruit_ILI9341 을 쓴다.** TFT_eSPI 는 핀 설정을 컴파일 타임 매크로로
+주입하는 구조라 조용히 어긋나기 쉬워 채택하지 않았다. 클러스터 펌웨어가 같은 경로로
+동작하는 것이 실물로 확인되어 있다.
+
+패널 색이 반전되어 보이면 `config.h` 의 `TFT_INVERT` 주석을 해제한다.
+QR 은 반전되어도 대부분의 스캐너가 읽지만, 배경/전경이 뒤집히면 가독성이 떨어진다.
+
+### 배선 진단
+
+화면이 안 나올 때는 진단 스케치로 원인을 좁힌다:
+
+```bash
+pio run -e diag -t upload      # GPIO 되읽기 + 색 순환
+```
+
+색이 순환하면 SPI 경로는 정상이므로 애플리케이션 코드 문제이고,
+계속 백색이면 배선이나 모듈 문제다.
 
 ## 빌드
 

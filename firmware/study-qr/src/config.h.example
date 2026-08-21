@@ -11,7 +11,25 @@
 #define ROOM_NAME       "24214"
 
 // QR 에 담을 베이스 URL. 짧을수록 QR 모듈 수가 줄어 스캔이 쉬워진다.
-#define BASE_URL        "https://omo.tail0d4a7c.ts.net/c/"
+#define BASE_URL        "https://omo.tail0d4a7c.ts.net:8443/c/"
 
-#define HEARTBEAT_URL   "https://omo.tail0d4a7c.ts.net/api/attendance/heartbeat"
+#define HEARTBEAT_URL   "https://omo.tail0d4a7c.ts.net:8443/api/attendance/heartbeat"
 #define FIRMWARE_VER    "study-qr-1.0.0"
+
+// ── 디스플레이 배선 ────────────────────────────────────────────
+// 아래 값은 클러스터 PCB(HEVEN firmware/cluster origin/main)에서 실물 검증된 배정.
+// 전용 장비를 새로 만들 때는 그 배선에 맞춰 여기만 고치면 된다.
+#define PIN_TFT_CS      4
+#define PIN_TFT_DC      5
+#define PIN_TFT_RST     16
+#define PIN_TFT_SCLK    21
+#define PIN_TFT_MOSI    19
+#define PIN_TFT_MISO    22   // 읽기는 안 쓰지만 SPI.begin 에 넘긴다
+
+// 0 = 세로(240x320), 1 = 가로(320x240)
+#define TFT_ROTATION    0
+#define SCREEN_W        240
+#define SCREEN_H        320
+
+// 패널 색이 반전되어 보이면 주석을 해제한다(클러스터 모듈이 이 경우).
+// #define TFT_INVERT    1
