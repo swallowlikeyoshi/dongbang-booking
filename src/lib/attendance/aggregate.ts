@@ -78,7 +78,12 @@ export function memberTotals(opts?: { weeklyCapSeconds?: number }): Ranking[] {
       adjustedCount: adjusted.get(memberId) ?? 0,
     });
   }
-  out.sort((a, b) => b.countedSeconds - a.countedSeconds);
+  // countedSeconds 가 같으면 student_no 오름차순으로 확정한다. 이 대회 엔트리
+  // 순서를 결정하는 목록이므로, 동점자 순서가 SELECT의 우연한 rowid 순서에
+  // 좌우되어 새로고침마다 뒤바뀌는 일이 있어서는 안 된다. student_no는
+  // unique·not-null이라 전순서(total order)가 보장된다. 순번 자체는 임의적이지만
+  // 고정이라, 시간이 바뀌지 않는 한 순위도 바뀌지 않는다.
+  out.sort((a, b) => b.countedSeconds - a.countedSeconds || a.member.student_no.localeCompare(b.member.student_no));
   return out;
 }
 

@@ -93,6 +93,34 @@ describe("aggregate", () => {
     expect(r.countedSeconds).toBe(7 * 3600);
   });
 
+  test("countedSeconds 가 같으면 student_no 오름차순으로 정렬된다 (1)", () => {
+    db.delete(schema.members).run();
+    db.insert(schema.members).values([
+      { id: 1, student_no: "20230002", name: "가", sub_team: "토크 벡터링", created_at: 0 },
+      { id: 2, student_no: "20230001", name: "나", sub_team: "계기 및 데이터", created_at: 0 },
+    ]).run();
+    addSession(1, T0, T0 + 3600, "confirmed");
+    addSession(2, T0, T0 + 3600, "confirmed");
+    const r = a.memberTotals();
+    expect(r[0].countedSeconds).toBe(r[1].countedSeconds);
+    expect(r.map((x) => x.member.student_no)).toEqual(["20230001", "20230002"]);
+  });
+
+  test("countedSeconds 가 같으면 student_no 오름차순으로 정렬된다 (2, 별도 데이터로 재확인)", () => {
+    db.delete(schema.members).run();
+    db.insert(schema.members).values([
+      { id: 5, student_no: "9", name: "다", sub_team: "배선 및 하네스", created_at: 0 },
+      { id: 6, student_no: "3", name: "라", sub_team: "배터리 및 전원", created_at: 0 },
+      { id: 7, student_no: "7", name: "마", sub_team: "토크 벡터링", created_at: 0 },
+    ]).run();
+    addSession(5, T0, T0 + 1800, "confirmed");
+    addSession(6, T0, T0 + 1800, "confirmed");
+    addSession(7, T0, T0 + 1800, "confirmed");
+    const r = a.memberTotals();
+    expect(r.map((x) => x.countedSeconds)).toEqual([1800, 1800, 1800]);
+    expect(r.map((x) => x.member.student_no)).toEqual(["3", "7", "9"]);
+  });
+
   test("기록 없는 멤버는 목록에 없다", () => {
     addSession(1, T0, T0 + 3600, "confirmed");
     expect(a.memberTotals().map((r) => r.member.id)).toEqual([1]);

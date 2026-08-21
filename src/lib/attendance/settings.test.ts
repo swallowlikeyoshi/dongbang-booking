@@ -33,4 +33,14 @@ describe("settings", () => {
     st.setSetting("weekly_cap_hours", "abc");
     expect(st.getWeeklyCapSeconds()).toBeNull();
   });
+
+  test.each(["0", "-5", "", "abc"])("getWeeklyCapSeconds: '%s' 는 null", (v) => {
+    st.setSetting("weekly_cap_hours", v);
+    expect(st.getWeeklyCapSeconds()).toBeNull();
+  });
+
+  test.each(["0", "-5", "", "abc"])("getEntryQuota: '%s' 는 null", (v) => {
+    st.setSetting("entry_quota", v);
+    expect(st.getEntryQuota()).toBeNull();
+  });
 });

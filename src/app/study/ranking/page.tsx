@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getSessionUser } from "@/auth";
 import { getMemberByEmail } from "@/lib/db/members";
 import { memberTotals } from "@/lib/attendance/aggregate";
@@ -8,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function RankingPage() {
   const user = await getSessionUser();
-  const me = user ? getMemberByEmail(user.email) : null;
+  if (!user) redirect("/api/auth/signin?callbackUrl=/study/ranking");
+  const me = getMemberByEmail(user.email);
 
   const cap = getWeeklyCapSeconds();
   const quota = getEntryQuota();

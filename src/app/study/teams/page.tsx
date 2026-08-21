@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/auth";
 import { teamDailyBuckets, memberTotals } from "@/lib/attendance/aggregate";
 import { SUB_TEAMS, SUB_TEAM_COLORS } from "@/lib/constants";
 import ContributionGrid from "@/components/attendance/ContributionGrid";
@@ -7,6 +9,9 @@ export const dynamic = "force-dynamic";
 const WEEKS = 18;
 
 export default async function TeamsPage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/api/auth/signin?callbackUrl=/study/teams");
+
   const now = Math.floor(Date.now() / 1000);
   const buckets = teamDailyBuckets(now - WEEKS * 7 * 86400, now);
   const totals = memberTotals();
