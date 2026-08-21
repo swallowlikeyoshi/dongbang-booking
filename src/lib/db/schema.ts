@@ -81,6 +81,16 @@ export const sessionEdits = sqliteTable("session_edits", {
   reason: text("reason"),
 });
 
+export const memberEdits = sqliteTable("member_edits", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  member_id: integer("member_id").notNull(),
+  editor_email: text("editor_email").notNull(),
+  edited_at: integer("edited_at").notNull(),
+  before_email: text("before_email"),
+  after_email: text("after_email"),
+  reason: text("reason"),
+});
+
 export const deviceHeartbeats = sqliteTable("device_heartbeats", {
   room_id: integer("room_id").primaryKey(),
   last_seen_at: integer("last_seen_at").notNull(),

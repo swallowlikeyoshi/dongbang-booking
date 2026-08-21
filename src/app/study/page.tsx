@@ -3,6 +3,7 @@ import { getSessionUser } from "@/auth";
 import { getMemberByEmail } from "@/lib/db/members";
 import { listSessionsByMember, listEdits } from "@/lib/attendance/sessions";
 import { dailyBuckets, memberTotals, weekSecondsFor } from "@/lib/attendance/aggregate";
+import { getWeeklyCapSeconds } from "@/lib/attendance/settings";
 import { weekStart } from "@/lib/week";
 import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
 import ContributionGrid from "@/components/attendance/ContributionGrid";
@@ -33,7 +34,9 @@ export default async function StudyPage() {
 
   const now = Math.floor(Date.now() / 1000);
   const sessions = listSessionsByMember(member.id);
-  const totals = memberTotals().find((t) => t.member.id === member.id);
+  const cap = getWeeklyCapSeconds();
+  const totals = memberTotals(cap ? { weeklyCapSeconds: cap } : undefined).find((t) => t.member.id === member.id);
+  const isCapped = cap && totals && totals.rawSeconds !== totals.countedSeconds;
   const buckets = dailyBuckets(member.id, now - 26 * 7 * 86400, now);
   const thisWeek = weekStart(now);
   const weekSeconds = weekSecondsFor(sessions, thisWeek);
@@ -48,6 +51,11 @@ export default async function StudyPage() {
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="text-sm text-slate-500">누적</div>
           <div className="text-2xl">{((totals?.countedSeconds ?? 0) / 3600).toFixed(1)}시간</div>
+          {isCapped && totals && (
+            <div className="mt-1 text-xs text-slate-400">
+              상한 전 {(totals.rawSeconds / 3600).toFixed(1)}시간 · 주간 인정 상한 {(cap! / 3600).toFixed(0)}시간이 적용되었습니다.
+            </div>
+          )}
         </div>
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="text-sm text-slate-500">이번 주</div>

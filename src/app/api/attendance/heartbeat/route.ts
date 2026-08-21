@@ -10,6 +10,6 @@ export async function POST(req: NextRequest) {
   const match = verifyCode(code, now, loadDevices());
   if (!match) return NextResponse.json({ error: "invalid code" }, { status: 401 });
 
-  recordHeartbeat(match.roomId, now, body?.firmware ? String(body.firmware) : undefined);
+  recordHeartbeat(match.roomId, now, body?.firmware ? String(body.firmware).slice(0, 64) : undefined);
   return NextResponse.json({ ok: true, occupancy: occupancy(match.roomId), serverTime: now });
 }

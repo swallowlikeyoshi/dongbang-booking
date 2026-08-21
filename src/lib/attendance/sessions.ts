@@ -145,13 +145,17 @@ export function autoCloseStale(now: number): number {
 
 /** unresolved 세션에 대해 본인이 종료 시각을 신고한다 → pending(승인 대기). */
 export function reportEndTime(args: {
-  sessionId: number; memberId: number; endedAt: number; editorEmail: string; note?: string;
+  sessionId: number; memberId: number; endedAt: number; editorEmail: string; note?: string; ts: number;
 }): CloseResult {
   const before = getSession(args.sessionId);
   if (!before) return { ok: false, error: "세션을 찾을 수 없습니다." };
   if (before.member_id !== args.memberId) return { ok: false, error: "본인 기록만 신고할 수 있습니다." };
   if (before.status !== "unresolved") return { ok: false, error: "미확정 상태의 기록만 신고할 수 있습니다." };
   if (args.endedAt <= before.started_at) return { ok: false, error: "종료 시각이 시작 시각보다 빠릅니다." };
+  if (args.endedAt > args.ts) return { ok: false, error: "종료 시각은 현재 시각보다 미래일 수 없습니다." };
+  if (args.endedAt - before.started_at > MAX_OPEN_SECONDS) {
+    return { ok: false, error: "종료 시각이 시작 시각으로부터 10시간을 초과했습니다." };
+  }
 
   const after = { ...before, ended_at: args.endedAt, end_proof: "manual", status: "pending", note: args.note ?? null };
   db.update(schema.studySessions)

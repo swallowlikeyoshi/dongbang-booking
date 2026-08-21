@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/auth";
 import { listPendingReview } from "@/lib/attendance/sessions";
-import { listMembers } from "@/lib/db/members";
+import { listMembers, listMemberEdits } from "@/lib/db/members";
 import { deviceStatuses } from "@/lib/attendance/devices";
 import { getSetting } from "@/lib/attendance/settings";
 import ReviewButtons from "@/components/attendance/ReviewButtons";
@@ -26,6 +26,7 @@ export default async function AdminStudyPage() {
   const members = new Map(allMembers.map((m) => [m.id, m]));
   const boundMembers = allMembers.filter((m) => m.user_email);
   const devices = deviceStatuses(now);
+  const memberEdits = listMemberEdits(20);
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -90,6 +91,25 @@ export default async function AdminStudyPage() {
           </li>
         ))}
         {boundMembers.length === 0 && <li className="py-2 text-slate-500">없습니다.</li>}
+      </ul>
+
+      <h2 className="mt-8 mb-2 text-lg">언바인드 이력 (최근 {memberEdits.length}건)</h2>
+      <ul className="divide-y">
+        {memberEdits.map((e) => (
+          <li key={e.id} className="py-2 text-sm">
+            <span className="text-slate-500">{fmt(e.edited_at)}</span>
+            {" · "}
+            {members.get(e.member_id)?.name ?? `#${e.member_id}`}
+            {" · "}
+            <span className="text-slate-500">{e.before_email ?? "—"}</span>
+            {" → "}
+            <span className="text-slate-500">{e.after_email ?? "—"}</span>
+            {" · 처리자 "}
+            {e.editor_email}
+            {e.reason ? ` · ${e.reason}` : ""}
+          </li>
+        ))}
+        {memberEdits.length === 0 && <li className="py-2 text-slate-500">없습니다.</li>}
       </ul>
 
       <h2 className="mt-8 mb-2 text-lg">설정</h2>

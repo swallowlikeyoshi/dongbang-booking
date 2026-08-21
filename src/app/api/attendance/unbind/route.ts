@@ -11,7 +11,8 @@ export async function POST(req: NextRequest) {
   const memberId = Number(body?.memberId);
   if (!Number.isFinite(memberId)) return NextResponse.json({ error: "memberId 필요" }, { status: 400 });
 
-  const r = unbindMember(memberId);
+  const reason = typeof body?.reason === "string" ? body.reason : undefined;
+  const r = unbindMember(memberId, user.email, reason);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

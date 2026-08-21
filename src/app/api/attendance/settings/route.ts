@@ -4,6 +4,10 @@ import { getSetting, setSetting } from "@/lib/attendance/settings";
 import { validateSettingInput } from "@/lib/attendance/settings-validation";
 
 export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "로그인 필요" }, { status: 401 });
+  if (!user.isAdmin) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+
   return NextResponse.json({
     weekly_cap_hours: getSetting("weekly_cap_hours"),
     entry_quota: getSetting("entry_quota"),

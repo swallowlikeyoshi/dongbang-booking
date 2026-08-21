@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     endedAt,
     editorEmail: user.email,
     note: typeof body?.note === "string" ? body.note : undefined,
+    ts: Math.floor(Date.now() / 1000),
   });
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
   return NextResponse.json({ ok: true });

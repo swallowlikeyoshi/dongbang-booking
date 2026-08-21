@@ -45,7 +45,7 @@ describe("자동 마감", () => {
     s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
     s.autoCloseStale(T0 + 11 * 3600);
     const id = s.listSessionsByMember(1)[0].id;
-    const r = s.reportEndTime({ sessionId: id, memberId: 1, endedAt: T0 + 4 * 3600, note: "19시 퇴실", editorEmail: "a@b.com" });
+    const r = s.reportEndTime({ sessionId: id, memberId: 1, endedAt: T0 + 4 * 3600, note: "19시 퇴실", editorEmail: "a@b.com", ts: T0 + 11 * 3600 });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.session.status).toBe("pending");
@@ -57,14 +57,44 @@ describe("자동 마감", () => {
     s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
     s.autoCloseStale(T0 + 11 * 3600);
     const id = s.listSessionsByMember(1)[0].id;
-    expect(s.reportEndTime({ sessionId: id, memberId: 999, endedAt: T0 + 100, editorEmail: "x@y.com" }).ok).toBe(false);
+    expect(s.reportEndTime({ sessionId: id, memberId: 999, endedAt: T0 + 100, editorEmail: "x@y.com", ts: T0 + 11 * 3600 }).ok).toBe(false);
   });
 
   test("신고 시각이 시작보다 빠르면 거절", () => {
     s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
     s.autoCloseStale(T0 + 11 * 3600);
     const id = s.listSessionsByMember(1)[0].id;
-    expect(s.reportEndTime({ sessionId: id, memberId: 1, endedAt: T0 - 10, editorEmail: "a@b.com" }).ok).toBe(false);
+    expect(s.reportEndTime({ sessionId: id, memberId: 1, endedAt: T0 - 10, editorEmail: "a@b.com", ts: T0 + 11 * 3600 }).ok).toBe(false);
+  });
+
+  test("신고 시각이 현재보다 미래면 거절", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    s.autoCloseStale(T0 + 11 * 3600);
+    const id = s.listSessionsByMember(1)[0].id;
+    const now = T0 + 11 * 3600;
+    const r = s.reportEndTime({ sessionId: id, memberId: 1, endedAt: now + 3600, editorEmail: "a@b.com", ts: now });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/미래/);
+  });
+
+  test("신고 시각이 시작 시각으로부터 MAX_OPEN_SECONDS 를 초과하면 거절", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    s.autoCloseStale(T0 + 11 * 3600);
+    const id = s.listSessionsByMember(1)[0].id;
+    const now = T0 + 30 * 3600;
+    const r = s.reportEndTime({ sessionId: id, memberId: 1, endedAt: T0 + s.MAX_OPEN_SECONDS + 1, editorEmail: "a@b.com", ts: now });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/10시간|초과/);
+  });
+
+  test("신고 시각이 MAX_OPEN_SECONDS 경계값이면 허용된다", () => {
+    s.openSession({ memberId: 1, roomId: 1, ts: T0, slot: 100 });
+    s.autoCloseStale(T0 + 11 * 3600);
+    const id = s.listSessionsByMember(1)[0].id;
+    const now = T0 + 30 * 3600;
+    const r = s.reportEndTime({ sessionId: id, memberId: 1, endedAt: T0 + s.MAX_OPEN_SECONDS, editorEmail: "a@b.com", ts: now });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.session.ended_at).toBe(T0 + s.MAX_OPEN_SECONDS);
   });
 
   test("관리자 승인하면 approved, 거부하면 rejected", () => {
