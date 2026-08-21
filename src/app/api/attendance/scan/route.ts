@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/auth";
 import { getMemberByEmail } from "@/lib/db/members";
-import { applyScan, consumePendingScan } from "@/lib/attendance/scan";
+import { applyScan, consumePendingScan, markPendingConsumed } from "@/lib/attendance/scan";
 import { autoCloseStale } from "@/lib/attendance/sessions";
 
 export async function POST(req: NextRequest) {
@@ -28,5 +28,9 @@ export async function POST(req: NextRequest) {
     ts: pending.scanned_at,
   });
   if (outcome.kind === "error") return NextResponse.json({ error: outcome.error }, { status: 400 });
+
+  // 성공적으로 적용된 뒤에만 소비 처리한다. 실패했다면(예: 다른 탭에서 이미
+  // 같은 슬롯을 소각) pending은 소비되지 않은 채로 남아 재시도할 수 있다.
+  markPendingConsumed(pendingId, now);
   return NextResponse.json({ kind: outcome.kind, session: outcome.session });
 }

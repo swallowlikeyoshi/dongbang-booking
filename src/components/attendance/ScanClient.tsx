@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type State =
   | { s: "loading" }
@@ -9,8 +9,12 @@ type State =
 
 export default function ScanClient({ pendingId, memberName }: { pendingId: string; memberName: string }) {
   const [state, setState] = useState<State>({ s: "loading" });
+  const fired = useRef(false);
 
   useEffect(() => {
+    if (fired.current) return;
+    fired.current = true;
+
     fetch("/api/attendance/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
