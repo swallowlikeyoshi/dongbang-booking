@@ -121,9 +121,17 @@ describe("aggregate", () => {
     expect(r.map((x) => x.member.student_no)).toEqual(["3", "7", "9"]);
   });
 
-  test("기록 없는 멤버는 목록에 없다", () => {
+  test("기록 없는 멤버도 0시간으로 포함된다", () => {
     addSession(1, T0, T0 + 3600, "confirmed");
-    expect(a.memberTotals().map((r) => r.member.id)).toEqual([1]);
+    const r = a.memberTotals();
+    // 엔트리 순서를 보는 표라 아무도 목록에서 빠지면 안 된다.
+    expect(r.map((x) => x.member.id).sort()).toEqual([1, 2]);
+    const zero = r.find((x) => x.member.id === 2)!;
+    expect(zero.countedSeconds).toBe(0);
+    expect(zero.rawSeconds).toBe(0);
+    expect(zero.sessionCount).toBe(0);
+    // 시간이 있는 사람이 앞에 온다.
+    expect(r[0].member.id).toBe(1);
   });
 
   test("dailyBuckets 는 날짜별 초를 준다", () => {

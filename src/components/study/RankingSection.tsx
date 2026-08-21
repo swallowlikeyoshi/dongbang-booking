@@ -10,8 +10,8 @@ export default function RankingSection({ me }: { me: Member | null }) {
   const myRank = me ? rows.findIndex((r) => r.member.id === me.id) + 1 : 0;
 
   return (
-    <section id="ranking" className="scroll-mt-16">
-      <h2 className="text-lg font-medium">순위</h2>
+    <section id="ranking" className="scroll-mt-20 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">순위</h2>
       <p className="mt-1 text-sm text-slate-500">
         영광 대회 엔트리 순서 기준입니다.
         {cap ? ` 주간 인정 상한 ${(cap / 3600).toFixed(0)}시간이 적용되어 있습니다.` : ""}
@@ -28,7 +28,6 @@ export default function RankingSection({ me }: { me: Member | null }) {
               <th className="px-3 py-2">세부팀</th>
               <th className="px-3 py-2 text-right">인정 시간</th>
               {cap && <th className="px-3 py-2 text-right">상한 전</th>}
-              <th className="px-3 py-2 text-right">보정</th>
             </tr>
           </thead>
           <tbody>
@@ -55,14 +54,11 @@ export default function RankingSection({ me }: { me: Member | null }) {
                       {r.rawSeconds !== r.countedSeconds ? `${(r.rawSeconds / 3600).toFixed(1)}h` : "—"}
                     </td>
                   )}
-                  <td className="px-3 py-2 text-right text-slate-500">
-                    {r.adjustedCount > 0 ? `${r.adjustedCount}/${r.sessionCount}` : "—"}
-                  </td>
                 </tr>
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">아직 기록된 시간이 없습니다.</td></tr>
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">아직 기록된 시간이 없습니다.</td></tr>
             )}
           </tbody>
         </table>

@@ -48,8 +48,10 @@ export default function ContributionGrid({ buckets, weeks, color, cell = 12 }: P
                 width: cell,
                 height: cell,
                 borderRadius: 3,
-                background: bg(d.sec),
-                border: d.sec <= 0 ? "0.5px solid #e2e8f0" : "none",
+                // 빈 칸은 얇은 테두리만으로는 거의 보이지 않아 격자가 사라진다.
+                // GitHub 처럼 옅은 면으로 채워 칸의 존재 자체가 읽히게 한다.
+                background: d.sec > 0 ? bg(d.sec) : "#e9edf2",
+                boxShadow: "inset 0 0 0 1px rgba(15,23,42,0.06)",
               }}
             />
           ))}

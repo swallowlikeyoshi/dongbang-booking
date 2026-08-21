@@ -32,7 +32,20 @@ export default async function StudyPage() {
         <a href="#teams" className="text-blue-600">팀 현황</a>
       </nav>
 
-      <div className="mt-6 space-y-10">
+      <section className="mt-6 rounded-xl border border-sky-200 bg-sky-50 p-4">
+        <h2 className="text-sm font-medium text-sky-900">이렇게 쓰면 됩니다</h2>
+        <ol className="mt-2 space-y-1 text-sm text-sky-900/90">
+          <li><b>1.</b> 동방에 도착하면 화면의 QR을 <b>기본 카메라 앱</b>으로 찍습니다. → 시작</li>
+          <li><b>2.</b> 나갈 때 같은 QR을 <b>한 번 더</b> 찍습니다. → 종료, 시간이 바로 인정됩니다.</li>
+          <li><b>3.</b> QR을 못 찍고 나왔다면 상단 배너의 <b>종료</b> 버튼을 누르세요. 이 경우 관리자 확인 후 인정됩니다.</li>
+        </ol>
+        <p className="mt-2 text-xs text-sky-900/70">
+          카카오톡 등 인앱 브라우저로 열면 로그인이 유지되지 않습니다. 기본 카메라로 찍어주세요.
+          종료를 깜빡해 10시간이 넘으면 자동 마감되며, 아래 기록에서 종료 시각을 직접 신고해야 인정됩니다.
+        </p>
+      </section>
+
+      <div className="mt-6 space-y-6">
         <MySection member={member} />
         <RankingSection me={member} />
         <TeamsSection />

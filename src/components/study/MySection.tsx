@@ -38,16 +38,19 @@ export default function MySection({ member }: { member: Member }) {
 
   // 미확정 기록은 본인이 신고해야 시간이 인정되므로 잘려서 숨으면 안 된다.
   const unresolved = sessions.filter((s) => s.status === "unresolved");
+  const pendingCount = sessions.filter((s) => s.status === "pending").length;
   const recent = sessions.slice(0, RECENT_LIMIT);
   const shown = [...unresolved, ...recent.filter((s) => s.status !== "unresolved")];
   const hidden = sessions.length - shown.length;
 
   return (
-    <section id="me" className="scroll-mt-16">
-      <h2 className="text-lg font-medium">내 스터디</h2>
-      <p className="mt-1 text-sm text-slate-500">{member.name} · {member.sub_team}</p>
+    <section id="me" className="scroll-mt-20 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-baseline gap-x-3 border-b border-slate-100 pb-3">
+        <h2 className="text-lg font-medium">내 스터디</h2>
+        <span className="text-sm text-slate-500">{member.name} · {member.sub_team}</span>
+      </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg bg-slate-50 p-4">
           <div className="text-sm text-slate-500">누적</div>
           <div className="text-2xl">{((totals?.countedSeconds ?? 0) / 3600).toFixed(1)}시간</div>
@@ -62,8 +65,11 @@ export default function MySection({ member }: { member: Member }) {
           <div className="text-2xl">{(weekSeconds / 3600).toFixed(1)}시간</div>
         </div>
         <div className="rounded-lg bg-slate-50 p-4">
-          <div className="text-sm text-slate-500">보정 건수</div>
-          <div className="text-2xl">{totals?.adjustedCount ?? 0}건</div>
+          <div className="text-sm text-slate-500">승인 대기</div>
+          <div className="text-2xl">{pendingCount}건</div>
+          {pendingCount > 0 && (
+            <div className="mt-1 text-xs text-slate-400">QR 없이 종료해 관리자 확인을 기다리는 기록</div>
+          )}
         </div>
       </div>
 
@@ -72,13 +78,15 @@ export default function MySection({ member }: { member: Member }) {
 
       <h3 className="mt-6 mb-2 text-sm text-slate-500">기록</h3>
       {shown.length === 0 && (
-        <p className="text-sm text-slate-500">아직 기록이 없습니다. 동방 화면의 QR을 스캔하면 시작됩니다.</p>
+        <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          아직 기록이 없습니다. 동방 화면의 QR을 스캔하면 시작됩니다.
+        </p>
       )}
-      <ul className="divide-y">
+      <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
         {shown.map((s) => {
           const edits = listEdits(s.id);
           return (
-            <li key={s.id} className="py-3">
+            <li key={s.id} className="px-4 py-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex-1">{fmt(s.started_at)}{s.ended_at ? ` – ${fmt(s.ended_at)}` : ""}</span>
                 <span className="text-slate-600">
@@ -105,9 +113,9 @@ export default function MySection({ member }: { member: Member }) {
       {hidden > 0 && (
         <details className="mt-2">
           <summary className="cursor-pointer text-sm text-blue-600">이전 기록 {hidden}건 더 보기</summary>
-          <ul className="divide-y">
+          <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
             {sessions.slice(RECENT_LIMIT).filter((s) => s.status !== "unresolved").map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center gap-2 py-3">
+              <li key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-3">
                 <span className="flex-1">{fmt(s.started_at)}{s.ended_at ? ` – ${fmt(s.ended_at)}` : ""}</span>
                 <span className="text-slate-600">
                   {s.ended_at ? `${(((s.ended_at as number) - s.started_at) / 3600).toFixed(1)}h` : "—"}

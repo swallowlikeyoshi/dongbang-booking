@@ -59,9 +59,11 @@ export function memberTotals(opts?: { weeklyCapSeconds?: number }): Ranking[] {
   }
 
   const out: Ranking[] = [];
-  for (const [memberId, rawSeconds] of raw) {
-    const member = byId.get(memberId);
-    if (!member) continue;
+  // 기록이 없는 멤버도 0시간으로 포함한다. 엔트리 순서를 보는 표에서
+  // 자기 이름을 찾지 못하면 "내가 몇 등인지"를 확인할 수 없다.
+  for (const member of members) {
+    const memberId = member.id;
+    const rawSeconds = raw.get(memberId) ?? 0;
     let countedSeconds = rawSeconds;
     const cap = opts?.weeklyCapSeconds;
     if (cap && cap > 0) {

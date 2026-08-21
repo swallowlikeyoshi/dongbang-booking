@@ -18,8 +18,8 @@ export default function TeamsSection() {
   }
 
   return (
-    <section id="teams" className="scroll-mt-16">
-      <h2 className="text-lg font-medium">팀 현황</h2>
+    <section id="teams" className="scroll-mt-20 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">팀 현황</h2>
       <p className="mt-1 text-sm text-slate-500">
         최근 {WEEKS}주. 팀마다 자기 색의 농담으로 강도를 표시합니다 — 팀끼리는 색이 아니라 패턴 모양으로 비교하세요.
       </p>
