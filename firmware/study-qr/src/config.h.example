@@ -1,0 +1,17 @@
+#pragma once
+
+// 실제 값을 채워 config.h 로 복사한다. config.h 는 커밋하지 않는다.
+#define WIFI_SSID       "heven"
+#define WIFI_PASSWORD   "..."
+
+// 서버의 ATTENDANCE_DEVICE_SECRETS 에 등록한 이 장비의 시크릿
+#define DEVICE_SECRET   "change-me"
+
+// 화면 상단에 표시할 방 이름 (ASCII만 — TFT_eSPI 기본 폰트는 한글 글리프가 없다)
+#define ROOM_NAME       "24214"
+
+// QR 에 담을 베이스 URL. 짧을수록 QR 모듈 수가 줄어 스캔이 쉬워진다.
+#define BASE_URL        "https://omo.tail0d4a7c.ts.net/c/"
+
+#define HEARTBEAT_URL   "https://omo.tail0d4a7c.ts.net/api/attendance/heartbeat"
+#define FIRMWARE_VER    "study-qr-1.0.0"
