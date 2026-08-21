@@ -4,6 +4,7 @@ process.env.DATABASE_PATH = ":memory:";
 
 const a = await import("./aggregate");
 const { db, schema } = await import("@/lib/db/index");
+const { listSessionsByMember } = await import("./sessions");
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { weekStart } from "@/lib/week";
 
@@ -110,5 +111,24 @@ describe("aggregate", () => {
     expect(Object.values(t["토크 벡터링"]).reduce((x, y) => x + y, 0)).toBe(3600);
     expect(Object.values(t["계기 및 데이터"]).reduce((x, y) => x + y, 0)).toBe(7200);
     expect(Object.keys(t["배선 및 하네스"] ?? {})).toHaveLength(0);
+  });
+
+  test("weekSecondsFor 는 COUNTED_STATUSES 만 합산한다 — 6개 상태 모두 넣고 3개만 세야 한다", () => {
+    const ws = weekStart(T0);
+    const statuses = ["open", "confirmed", "pending", "approved", "rejected", "unresolved"];
+    statuses.forEach((status, i) => {
+      addSession(1, ws + i * 3600, ws + i * 3600 + 1800, status);
+    });
+    const sessions = listSessionsByMember(1);
+    // confirmed + pending + approved = 3 * 1800 = 5400
+    expect(a.weekSecondsFor(sessions, ws)).toBe(5400);
+  });
+
+  test("weekSecondsFor 는 주 시작 이전 세션을 제외한다", () => {
+    const ws = weekStart(T0);
+    addSession(1, ws - 3600, ws - 3600 + 1800, "confirmed"); // 지난 주
+    addSession(1, ws + 3600, ws + 3600 + 1800, "confirmed"); // 이번 주
+    const sessions = listSessionsByMember(1);
+    expect(a.weekSecondsFor(sessions, ws)).toBe(1800);
   });
 });

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/auth";
 import { getMemberByEmail } from "@/lib/db/members";
 import { listSessionsByMember, listEdits } from "@/lib/attendance/sessions";
-import { dailyBuckets, memberTotals } from "@/lib/attendance/aggregate";
+import { dailyBuckets, memberTotals, weekSecondsFor } from "@/lib/attendance/aggregate";
 import { weekStart } from "@/lib/week";
 import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
 import ContributionGrid from "@/components/attendance/ContributionGrid";
@@ -36,9 +36,7 @@ export default async function StudyPage() {
   const totals = memberTotals().find((t) => t.member.id === member.id);
   const buckets = dailyBuckets(member.id, now - 26 * 7 * 86400, now);
   const thisWeek = weekStart(now);
-  const weekSeconds = sessions
-    .filter((s) => s.ended_at && s.started_at >= thisWeek && ["confirmed", "pending", "approved"].includes(s.status))
-    .reduce((acc, s) => acc + ((s.ended_at as number) - s.started_at), 0);
+  const weekSeconds = weekSecondsFor(sessions, thisWeek);
 
   const color = SUB_TEAM_COLORS[member.sub_team as SubTeam] ?? "#2a78d6";
 

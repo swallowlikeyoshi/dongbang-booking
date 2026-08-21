@@ -1,5 +1,5 @@
 import { db, schema } from "@/lib/db/index";
-import { COUNTED_STATUSES } from "./sessions";
+import { COUNTED_STATUSES, type StudySession } from "./sessions";
 import { weekStart } from "@/lib/week";
 import { SUB_TEAMS, type SubTeam } from "@/lib/constants";
 import type { Member } from "@/lib/db/members";
@@ -80,6 +80,19 @@ export function memberTotals(opts?: { weeklyCapSeconds?: number }): Ranking[] {
   }
   out.sort((a, b) => b.countedSeconds - a.countedSeconds);
   return out;
+}
+
+
+/**
+ * 세션 목록 중 이번 주(weekStartTs 이후 시작) + 집계 포함 상태(COUNTED_STATUSES)인
+ * 것만 합산한다. `memberTotals`의 누적 집계와 같은 상태 기준을 공유하도록
+ * `COUNTED_STATUSES`를 그대로 재사용한다 — 두 숫자가 서로 다른 상태 목록으로
+ * 갈라지는 일이 없어야 한다.
+ */
+export function weekSecondsFor(sessions: StudySession[], weekStartTs: number): number {
+  return sessions
+    .filter((s) => s.ended_at !== null && s.started_at >= weekStartTs && COUNTED.has(s.status))
+    .reduce((acc, s) => acc + ((s.ended_at as number) - s.started_at), 0);
 }
 
 /** 날짜(YYYY-MM-DD) → 초. 잔디 그래프용. */
