@@ -39,9 +39,9 @@ export default function CompetitionSelect({
   }
 
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex flex-wrap items-center gap-1">
       <select
-        className="rounded border border-slate-300 bg-white px-1 py-0.5 text-xs disabled:opacity-50"
+        className="w-full max-w-[6.5rem] rounded border border-slate-300 bg-white px-1 py-0.5 text-xs disabled:opacity-50"
         value={current}
         disabled={busy}
         onChange={(e) => change(e.target.value)}
