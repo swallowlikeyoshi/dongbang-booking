@@ -13,7 +13,7 @@ type Props = {
 export default function ContributionGrid({ buckets, weeks, color, cell = 12 }: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  // 이번 주 일요일부터 거슬러 올라간다.
+  // end = 이번 주 토요일. weeks * 7 일 전부터 이 날까지 역순으로 채운다.
   const end = new Date(today);
   end.setDate(end.getDate() + (6 - end.getDay()));
 
