@@ -86,3 +86,8 @@ export const deviceHeartbeats = sqliteTable("device_heartbeats", {
   last_seen_at: integer("last_seen_at").notNull(),
   firmware: text("firmware"),
 });
+
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
