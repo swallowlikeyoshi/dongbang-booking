@@ -27,14 +27,27 @@ export function listSessionsByMember(memberId: number): StudySession[] {
     .all();
 }
 
-/** (슬롯, 멤버) 쌍 소각. 이미 쓴 조합이면 false. */
+/**
+ * (슬롯, 멤버) 쌍 소각. 이미 쓴 조합이면 false.
+ *
+ * 사전 조회는 일반 경로의 예외 비용을 피하기 위한 것일 뿐, 실제 유일성은
+ * `used_codes_member_slot_unique` DB 제약이 보장한다(check-then-write는
+ * TOCTOU 레이스에 취약하므로 단독으로 신뢰하지 않는다). insert가 그
+ * 제약을 위반하면 false를 반환하고, 그 외 에러는 그대로 다시 던진다.
+ */
 export function burnCode(memberId: number, slot: number, ts: number): boolean {
   const dup = db.select().from(schema.usedCodes)
     .where(and(eq(schema.usedCodes.member_id, memberId), eq(schema.usedCodes.slot, slot)))
     .all();
   if (dup.length > 0) return false;
-  db.insert(schema.usedCodes).values({ member_id: memberId, slot, used_at: ts }).run();
-  return true;
+  try {
+    db.insert(schema.usedCodes).values({ member_id: memberId, slot, used_at: ts }).run();
+    return true;
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (typeof code === "string" && code.startsWith("SQLITE_CONSTRAINT")) return false;
+    throw err;
+  }
 }
 
 export function openSession(args: {

@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, text, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const rooms = sqliteTable("rooms", {
   id: integer("id").primaryKey(),
@@ -59,7 +59,9 @@ export const usedCodes = sqliteTable("used_codes", {
   member_id: integer("member_id").notNull(),
   slot: integer("slot").notNull(),
   used_at: integer("used_at").notNull(),
-});
+}, (t) => ({
+  memberSlotUnique: uniqueIndex("used_codes_member_slot_unique").on(t.member_id, t.slot),
+}));
 
 export const pendingScans = sqliteTable("pending_scans", {
   id: text("id").primaryKey(),

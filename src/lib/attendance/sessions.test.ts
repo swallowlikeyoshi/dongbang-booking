@@ -70,4 +70,11 @@ describe("sessions", () => {
     const r = s.closeSession({ memberId: 1, ts: T0 + 12 * 3600, proof: "qr" });
     if (r.ok) expect(r.session.status).toBe("confirmed");
   });
+
+  test("사전 체크를 우회해도 DB 유일 제약이 소각 중복을 막는다", () => {
+    // burnCode를 거치지 않고 직접 insert하여 애플리케이션 레벨 사전 조회를 우회한다.
+    db.insert(schema.usedCodes).values({ member_id: 1, slot: 100, used_at: T0 }).run();
+    expect(() => s.burnCode(1, 100, T0 + 1)).not.toThrow();
+    expect(s.burnCode(1, 100, T0 + 1)).toBe(false);
+  });
 });
