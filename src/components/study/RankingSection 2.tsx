@@ -5,31 +5,15 @@ import type { Member } from "@/lib/db/members";
 import { formatDuration } from "@/lib/attendance/format";
 import CompetitionSelect from "./CompetitionSelect";
 
-export default function RankingSection({
-  me,
-  isAdmin,
-  /** 공개 페이지에서는 페이지 제목이 따로 있어 섹션 제목을 숨긴다. */
-  bare = false,
-}: {
-  me: Member | null;
-  isAdmin: boolean;
-  bare?: boolean;
-}) {
+export default function RankingSection({ me, isAdmin }: { me: Member | null; isAdmin: boolean }) {
   const cap = getWeeklyCapSeconds();
   const quota = getEntryQuota();
   const rows = memberTotals(cap ? { weeklyCapSeconds: cap } : undefined);
   const myRank = me ? rows.findIndex((r) => r.member.id === me.id) + 1 : 0;
 
   return (
-    <section
-      id="ranking"
-      className={
-        bare
-          ? ""
-          : "scroll-mt-20 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-      }
-    >
-      {!bare && <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">순위</h2>}
+    <section id="ranking" className="scroll-mt-20 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">순위</h2>
       <p className="mt-1 text-sm text-slate-500">
         영광 대회 엔트리 순서 기준입니다.
         {cap ? ` 주간 인정 상한 ${(cap / 3600).toFixed(0)}시간이 적용되어 있습니다.` : ""}
