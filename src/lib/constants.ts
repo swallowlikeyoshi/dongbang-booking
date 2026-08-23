@@ -35,3 +35,14 @@ export const SUB_TEAM_COLORS: Record<SubTeam, string> = {
 /** 참여 대회. 세부팀장은 두 대회를 모두 뛴다. 미배정은 null. */
 export const COMPETITIONS = ["영광", "화성", "세부팀장"] as const;
 export type Competition = (typeof COMPETITIONS)[number];
+
+/**
+ * 순위표 행 배경. 59행을 훑을 때 대회별 그룹이 눈에 들어오게 하는 용도라
+ * 아주 옅어야 한다 — 글자 대비를 해치면 표를 읽는 본래 목적이 깨진다.
+ * 색만으로 뜻을 전하지 않도록 '참여 대회' 열의 텍스트는 그대로 둔다.
+ */
+export const COMPETITION_ROW_TINT: Record<Competition, string> = {
+  영광: "bg-amber-50",
+  화성: "bg-violet-50",
+  세부팀장: "bg-emerald-50",
+};

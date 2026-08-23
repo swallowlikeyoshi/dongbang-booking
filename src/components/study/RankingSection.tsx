@@ -1,6 +1,12 @@
 import { memberTotals } from "@/lib/attendance/aggregate";
 import { getEntryQuota, getWeeklyCapSeconds } from "@/lib/attendance/settings";
-import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
+import {
+  SUB_TEAM_COLORS,
+  COMPETITION_ROW_TINT,
+  COMPETITIONS,
+  type SubTeam,
+  type Competition,
+} from "@/lib/constants";
 import type { Member } from "@/lib/db/members";
 import { formatDuration } from "@/lib/attendance/format";
 import CompetitionSelect from "./CompetitionSelect";
@@ -36,6 +42,21 @@ export default function RankingSection({
         {myRank > 0 && ` 내 순위 ${myRank}위 / ${rows.length}명.`}
       </p>
 
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+        {COMPETITIONS.map((c) => (
+          <span key={c} className="inline-flex items-center gap-1.5">
+            <span
+              className={`inline-block h-3 w-5 rounded-sm border border-slate-200 ${COMPETITION_ROW_TINT[c]}`}
+            />
+            {c}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-3 w-5 rounded-sm border border-slate-200 bg-white" />
+          미배정
+        </span>
+      </div>
+
       {/* 58명이면 페이지가 지나치게 길어져 아래 섹션이 밀린다. 표 자체를 스크롤시킨다. */}
       <div className="mt-4 max-h-[26rem] overflow-y-auto rounded-lg border">
         <table className="w-full table-auto text-sm">
@@ -53,10 +74,13 @@ export default function RankingSection({
             {rows.map((r, i) => {
               const isMe = me?.id === r.member.id;
               const cut = quota !== null && i + 1 === quota;
+              const tint = r.member.competition
+                ? COMPETITION_ROW_TINT[r.member.competition as Competition] ?? ""
+                : "";
               return (
                 <tr
                   key={r.member.id}
-                  className={`border-t ${isMe ? "bg-sky-50 font-medium" : ""} ${cut ? "border-b-2 border-b-red-400" : ""}`}
+                  className={`border-t ${isMe ? "bg-sky-50 font-medium" : tint} ${cut ? "border-b-2 border-b-red-400" : ""}`}
                 >
                   <td className="px-2 py-2 sm:px-3">{i + 1}</td>
                   <td className="px-2 py-2 sm:px-3">
