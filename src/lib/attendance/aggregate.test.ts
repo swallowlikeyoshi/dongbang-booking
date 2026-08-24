@@ -6,16 +6,20 @@ const a = await import("./aggregate");
 const { db, schema } = await import("@/lib/db/index");
 const { listSessionsByMember } = await import("./sessions");
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { weekStart } from "@/lib/week";
+import { studyWeekStart } from "@/lib/week";
 
 const T0 = 1_700_000_000;
 
-function addSession(memberId: number, start: number, end: number, status: string) {
+function addSession(memberId: number, start: number, end: number, status: string, proof = "qr") {
   db.insert(schema.studySessions).values({
     member_id: memberId, room_id: 1, started_at: start, ended_at: end,
-    start_proof: "qr", end_proof: "qr", status, created_at: start,
+    start_proof: proof, end_proof: proof, status, created_at: start,
   }).run();
 }
+
+const H = (h: number) => h * 3600;
+/** 어떤 주의 월요일 09:00 — 테스트 기준점. */
+const MON9 = studyWeekStart(T0) + 9 * 3600;
 
 describe("aggregate", () => {
   beforeEach(() => {
@@ -60,37 +64,110 @@ describe("aggregate", () => {
     expect(r[1].member.id).toBe(1);
   });
 
-  test("주간 상한을 주면 상한 전/후가 모두 나온다", () => {
-    addSession(1, T0, T0 + 10 * 3600, "confirmed");
-    const r = a.memberTotals({ weeklyCapSeconds: 5 * 3600 })[0];
-    expect(r.rawSeconds).toBe(10 * 3600);
-    expect(r.countedSeconds).toBe(5 * 3600);
+  test("같은 팀이 같은 시간에 함께 있으면 쿼터는 한 번만 깎인다", () => {
+    // 이 규칙의 핵심. 6명이 6시간 함께 있으면 팀은 36시간이 아니라 6시간을 쓴 것이다.
+    // 개인은 각자 6시간을 그대로 받는다.
+    db.insert(schema.members).values(
+      [3, 4, 5, 6].map((id) => ({
+        id, student_no: String(id), name: `팀원${id}`, sub_team: "토크 벡터링", created_at: 0,
+      }))
+    ).run();
+    for (const id of [1, 3, 4, 5, 6]) addSession(id, MON9, MON9 + H(6), "confirmed");
+
+    const r = a.memberTotals();
+    for (const id of [1, 3, 4, 5, 6]) {
+      expect(r.find((x) => x.member.id === id)!.countedSeconds).toBe(H(6));
+    }
+    const usage = a.teamWeekUsage(studyWeekStart(MON9))
+      .find((u) => u.team === "토크 벡터링")!;
+    expect(usage.unionSeconds).toBe(H(6));
+    expect(usage.remainingSeconds).toBe(H(4));
+    expect(usage.exceeded).toBe(false);
   });
 
-  test("주간 상한: 서로 다른 주에 걸치면 각 주가 상한 이하여도 합산은 그대로 카운트된다", () => {
-    // 이 테스트는 상한이 "주 단위"로 적용됨을 증명한다 — 전체합에 상한을 씌우는
-    // 회귀(countedSeconds = min(rawSeconds, cap))로는 통과할 수 없어야 한다.
-    const weekAStart = weekStart(T0);
-    const weekBStart = weekAStart + 7 * 24 * 3600;
+  test("사용자 예시: A 11~16, B 12~17 이면 팀은 6시간을 쓴다", () => {
+    const eleven = MON9 + H(2);
+    db.insert(schema.members).values([
+      { id: 3, student_no: "3", name: "다", sub_team: "토크 벡터링", created_at: 0 },
+    ]).run();
+    addSession(1, eleven, eleven + H(5), "confirmed");        // 11~16
+    addSession(3, eleven + H(1), eleven + H(6), "confirmed"); // 12~17
 
-    addSession(1, weekAStart + 3600, weekAStart + 3600 + 4 * 3600, "confirmed"); // 주 A: 4h
-    addSession(1, weekBStart + 3600, weekBStart + 3600 + 4 * 3600, "confirmed"); // 주 B: 4h
-
-    const r = a.memberTotals({ weeklyCapSeconds: 5 * 3600 })[0];
-    expect(r.rawSeconds).toBe(8 * 3600);
-    expect(r.countedSeconds).toBe(8 * 3600);
+    const usage = a.teamWeekUsage(studyWeekStart(eleven))
+      .find((u) => u.team === "토크 벡터링")!;
+    expect(usage.unionSeconds).toBe(H(6));
+    expect(usage.remainingSeconds).toBe(H(4));
+    // 개인은 각자 5시간씩 그대로
+    const r = a.memberTotals();
+    expect(r.find((x) => x.member.id === 1)!.countedSeconds).toBe(H(5));
+    expect(r.find((x) => x.member.id === 3)!.countedSeconds).toBe(H(5));
   });
 
-  test("주간 상한: 한 주는 상한에 걸리고 다른 주는 상한 미만이면 두 주 각각 계산된다", () => {
-    const weekAStart = weekStart(T0);
-    const weekBStart = weekAStart + 7 * 24 * 3600;
+  test("쿼터를 넘기면 넘어선 시간만 빠진다 — 일부만 인정", () => {
+    // 혼자 12시간: 10시간까지만 인정된다.
+    addSession(1, MON9, MON9 + H(12), "confirmed");
+    const r = a.memberTotals().find((x) => x.member.id === 1)!;
+    expect(r.rawSeconds).toBe(H(12));
+    expect(r.countedSeconds).toBe(H(10));
+  });
 
-    addSession(1, weekAStart + 3600, weekAStart + 3600 + 10 * 3600, "confirmed"); // 주 A: 10h → 5h로 상한
-    addSession(1, weekBStart + 3600, weekBStart + 3600 + 2 * 3600, "confirmed"); // 주 B: 2h → 그대로
+  test("쿼터 소진 후 시작한 세션은 인정되지 않는다", () => {
+    db.insert(schema.members).values([
+      { id: 3, student_no: "3", name: "다", sub_team: "토크 벡터링", created_at: 0 },
+    ]).run();
+    addSession(1, MON9, MON9 + H(10), "confirmed");          // 쿼터를 정확히 채움
+    addSession(3, MON9 + H(10), MON9 + H(12), "confirmed");  // 그 뒤 2시간
 
-    const r = a.memberTotals({ weeklyCapSeconds: 5 * 3600 })[0];
-    expect(r.rawSeconds).toBe(12 * 3600);
-    expect(r.countedSeconds).toBe(7 * 3600);
+    const r = a.memberTotals();
+    expect(r.find((x) => x.member.id === 1)!.countedSeconds).toBe(H(10));
+    expect(r.find((x) => x.member.id === 3)!.countedSeconds).toBe(0);
+  });
+
+  test("쿼터 경계에 걸친 세션은 걸친 만큼만 인정된다", () => {
+    db.insert(schema.members).values([
+      { id: 3, student_no: "3", name: "다", sub_team: "토크 벡터링", created_at: 0 },
+    ]).run();
+    addSession(1, MON9, MON9 + H(9), "confirmed");           // 9시간
+    addSession(3, MON9 + H(9), MON9 + H(12), "confirmed");   // 이어서 3시간 → 1시간만
+
+    const r = a.memberTotals();
+    expect(r.find((x) => x.member.id === 1)!.countedSeconds).toBe(H(9));
+    expect(r.find((x) => x.member.id === 3)!.countedSeconds).toBe(H(1));
+  });
+
+  test("팀이 다르면 쿼터를 따로 쓴다", () => {
+    addSession(1, MON9, MON9 + H(10), "confirmed"); // 토크 벡터링
+    addSession(2, MON9, MON9 + H(10), "confirmed"); // 계기 및 데이터
+    const r = a.memberTotals();
+    expect(r.find((x) => x.member.id === 1)!.countedSeconds).toBe(H(10));
+    expect(r.find((x) => x.member.id === 2)!.countedSeconds).toBe(H(10));
+  });
+
+  test("주가 다르면 쿼터가 리셋된다", () => {
+    addSession(1, MON9, MON9 + H(10), "confirmed");
+    addSession(1, MON9 + 7 * 24 * 3600, MON9 + 7 * 24 * 3600 + H(10), "confirmed");
+    const r = a.memberTotals().find((x) => x.member.id === 1)!;
+    expect(r.countedSeconds).toBe(H(20));
+  });
+
+  test("import 기록은 쿼터를 소모하지도, 깎이지도 않는다", () => {
+    // 엑셀에서 옮겨온 과거 기록은 세부팀장이 이미 쿼터를 맞춰 적은 값이다.
+    // 게다가 시작 시각이 전부 19:00 으로 합성돼 있어 합집합이 의미가 없다.
+    addSession(1, MON9, MON9 + H(30), "approved", "import");
+    const r = a.memberTotals().find((x) => x.member.id === 1)!;
+    expect(r.countedSeconds).toBe(H(30));
+
+    const usage = a.teamWeekUsage(studyWeekStart(MON9))
+      .find((u) => u.team === "토크 벡터링")!;
+    expect(usage.unionSeconds).toBe(0);
+    expect(usage.remainingSeconds).toBe(H(10));
+  });
+
+  test("import 가 있어도 QR 세션의 쿼터 계산은 그대로다", () => {
+    addSession(1, MON9, MON9 + H(30), "approved", "import");
+    addSession(1, MON9, MON9 + H(12), "confirmed");
+    const r = a.memberTotals().find((x) => x.member.id === 1)!;
+    expect(r.countedSeconds).toBe(H(30) + H(10)); // import 전부 + QR 10시간
   });
 
   test("countedSeconds 가 같으면 student_no 오름차순으로 정렬된다 (1)", () => {
@@ -150,7 +227,7 @@ describe("aggregate", () => {
   });
 
   test("weekSecondsFor 는 COUNTED_STATUSES 만 합산한다 — 6개 상태 모두 넣고 3개만 세야 한다", () => {
-    const ws = weekStart(T0);
+    const ws = studyWeekStart(T0);
     const statuses = ["open", "confirmed", "pending", "approved", "rejected", "unresolved"];
     statuses.forEach((status, i) => {
       addSession(1, ws + i * 3600, ws + i * 3600 + 1800, status);
@@ -161,7 +238,7 @@ describe("aggregate", () => {
   });
 
   test("weekSecondsFor 는 주 시작 이전 세션을 제외한다", () => {
-    const ws = weekStart(T0);
+    const ws = studyWeekStart(T0);
     addSession(1, ws - 3600, ws - 3600 + 1800, "confirmed"); // 지난 주
     addSession(1, ws + 3600, ws + 3600 + 1800, "confirmed"); // 이번 주
     const sessions = listSessionsByMember(1);

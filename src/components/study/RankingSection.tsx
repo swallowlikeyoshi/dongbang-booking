@@ -1,5 +1,5 @@
 import { memberTotals } from "@/lib/attendance/aggregate";
-import { getEntryQuota, getWeeklyCapSeconds } from "@/lib/attendance/settings";
+import { getEntryQuota, getTeamQuotaSeconds } from "@/lib/attendance/settings";
 import {
   SUB_TEAM_COLORS,
   COMPETITION_ROW_TINT,
@@ -21,9 +21,10 @@ export default function RankingSection({
   isAdmin: boolean;
   bare?: boolean;
 }) {
-  const cap = getWeeklyCapSeconds();
+  
   const quota = getEntryQuota();
-  const rows = memberTotals(cap ? { weeklyCapSeconds: cap } : undefined);
+  const teamQuota = getTeamQuotaSeconds();
+  const rows = memberTotals();
   const myRank = me ? rows.findIndex((r) => r.member.id === me.id) + 1 : 0;
 
   return (
@@ -38,7 +39,7 @@ export default function RankingSection({
       {!bare && <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">순위</h2>}
       <p className="mt-1 text-sm text-slate-500">
         영광 대회 엔트리 순서 기준입니다.
-        {cap ? ` 주간 인정 상한 ${(cap / 3600).toFixed(0)}시간이 적용되어 있습니다.` : ""}
+        {` 세부팀마다 주 ${(teamQuota / 3600).toFixed(0)}시간까지 인정됩니다.`}
         {myRank > 0 && ` 내 순위 ${myRank}위 / ${rows.length}명.`}
       </p>
 
@@ -67,7 +68,7 @@ export default function RankingSection({
               <th className="hidden px-3 py-2 sm:table-cell">세부팀</th>
               <th className="px-2 py-2 sm:px-3">대회</th>
               <th className="px-2 py-2 text-right sm:px-3">인정 시간</th>
-              {cap && <th className="hidden px-3 py-2 text-right sm:table-cell">상한 전</th>}
+              <th className="hidden px-3 py-2 text-right sm:table-cell">쿼터 적용 전</th>
             </tr>
           </thead>
           <tbody>
@@ -108,11 +109,9 @@ export default function RankingSection({
                     )}
                   </td>
                   <td className="px-2 py-2 text-right whitespace-nowrap sm:px-3">{formatDuration(r.countedSeconds)}</td>
-                  {cap && (
-                    <td className="hidden px-3 py-2 text-right text-slate-400 sm:table-cell">
-                      {r.rawSeconds !== r.countedSeconds ? formatDuration(r.rawSeconds) : "—"}
-                    </td>
-                  )}
+                  <td className="hidden px-3 py-2 text-right text-slate-400 sm:table-cell">
+                    {r.rawSeconds !== r.countedSeconds ? formatDuration(r.rawSeconds) : "—"}
+                  </td>
                 </tr>
               );
             })}

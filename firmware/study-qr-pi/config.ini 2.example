@@ -1,0 +1,8 @@
+# config.ini 로 복사해서 채운다. config.ini 는 커밋하지 않는다.
+[device]
+# 서버 .env 의 ATTENDANCE_DEVICE_SECRETS 에 등록한 이 방의 시크릿과 같아야 한다.
+secret = change-me
+# 화면 상단에 표시할 이름. 파이는 한글 폰트가 있어 ESP32 와 달리 한글을 써도 된다.
+room_name = 학생회관 03324
+base_url = https://omo.tail0d4a7c.ts.net:8443/c/
+heartbeat_url = https://omo.tail0d4a7c.ts.net:8443/api/attendance/heartbeat

@@ -1,6 +1,6 @@
 import { listSessionsByMember, listEdits } from "@/lib/attendance/sessions";
 import { dailyBuckets, memberTotals, weekSecondsFor } from "@/lib/attendance/aggregate";
-import { getWeeklyCapSeconds } from "@/lib/attendance/settings";
+
 import { weekStart } from "@/lib/week";
 import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
 import type { Member } from "@/lib/db/members";
@@ -31,10 +31,10 @@ function fmt(ts: number) {
 export default function MySection({ member }: { member: Member }) {
   const now = Math.floor(Date.now() / 1000);
   const sessions = listSessionsByMember(member.id);
-  const cap = getWeeklyCapSeconds();
-  const totals = memberTotals(cap ? { weeklyCapSeconds: cap } : undefined)
+  
+  const totals = memberTotals()
     .find((t) => t.member.id === member.id);
-  const isCapped = cap && totals && totals.rawSeconds !== totals.countedSeconds;
+  const isCapped = totals && totals.rawSeconds !== totals.countedSeconds;
   const buckets = dailyBuckets(member.id, now - 26 * 7 * 86400, now);
   const weekSeconds = weekSecondsFor(sessions, weekStart(now));
   const color = SUB_TEAM_COLORS[member.sub_team as SubTeam] ?? "#2a78d6";
@@ -61,7 +61,7 @@ export default function MySection({ member }: { member: Member }) {
           <div className="text-2xl">{formatDuration(totals?.countedSeconds ?? 0)}</div>
           {isCapped && totals && (
             <div className="mt-1 text-xs text-slate-400">
-              상한 전 {formatDuration(totals.rawSeconds)} · 주간 인정 상한 {(cap! / 3600).toFixed(0)}시간 적용
+              쿼터 적용 전 {formatDuration(totals.rawSeconds)} · 팀 주간 쿼터를 넘어선 시간은 빠집니다
             </div>
           )}
         </div>
