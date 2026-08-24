@@ -98,6 +98,27 @@ function countedSecondsFor(r: Row, byId: Map<number, Member>, regions: RegionMap
 }
 
 /**
+ * 세션 id → 실제 인정된 초.
+ *
+ * 쿼터 경계에 걸려 일부만 인정된 기록을 화면에 그대로 보여주기 위해 쓴다.
+ * "왜 3시간 있었는데 1시간만 들어갔지?"에 답할 수 없으면 규칙이 불신을 산다.
+ */
+export function countedSecondsBySession(memberId: number, opts?: { quotaSeconds?: number }): Map<number, number> {
+  const members = db.select().from(schema.members).all();
+  const byId = new Map(members.map((m) => [m.id, m]));
+  const rows = countedRows();
+  const quota = opts?.quotaSeconds ?? getTeamQuotaSeconds();
+  const regions = quotaRegions(rows, byId, quota);
+
+  const out = new Map<number, number>();
+  for (const r of rows) {
+    if (r.member_id !== memberId) continue;
+    out.set(r.id, countedSecondsFor(r, byId, regions));
+  }
+  return out;
+}
+
+/**
  * 세부팀별 이번 주(또는 지정한 주) 쿼터 사용 현황.
  * 화면에 "이번 주 남은 시간"을 띄우는 데 쓴다.
  */

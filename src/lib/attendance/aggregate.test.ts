@@ -245,3 +245,36 @@ describe("aggregate", () => {
     expect(a.weekSecondsFor(sessions, ws)).toBe(1800);
   });
 });
+
+describe("countedSecondsBySession", () => {
+  beforeEach(() => {
+    migrate(db as never, { migrationsFolder: "./drizzle" });
+    db.delete(schema.studySessions).run();
+    db.delete(schema.members).run();
+    db.insert(schema.members).values([
+      { id: 1, student_no: "1", name: "가", sub_team: "토크 벡터링", created_at: 0 },
+      { id: 3, student_no: "3", name: "다", sub_team: "토크 벡터링", created_at: 0 },
+    ]).run();
+  });
+
+  test("쿼터에 안 걸리면 세션 시간 그대로", () => {
+    addSession(1, MON9, MON9 + H(3), "confirmed");
+    const m = a.countedSecondsBySession(1);
+    expect([...m.values()]).toEqual([H(3)]);
+  });
+
+  test("경계에 걸친 세션만 줄어든다", () => {
+    addSession(1, MON9, MON9 + H(9), "confirmed");          // 팀 쿼터 9시간 소모
+    addSession(3, MON9 + H(9), MON9 + H(12), "confirmed");  // 1시간만 인정
+    const mine = a.countedSecondsBySession(3);
+    expect([...mine.values()]).toEqual([H(1)]);
+    const first = a.countedSecondsBySession(1);
+    expect([...first.values()]).toEqual([H(9)]);
+  });
+
+  test("다른 사람 세션은 들어오지 않는다", () => {
+    addSession(1, MON9, MON9 + H(1), "confirmed");
+    addSession(3, MON9, MON9 + H(1), "confirmed");
+    expect(a.countedSecondsBySession(1).size).toBe(1);
+  });
+});

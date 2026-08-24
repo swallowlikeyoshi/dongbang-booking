@@ -1,5 +1,5 @@
-import { listSessionsByMember, listEdits } from "@/lib/attendance/sessions";
-import { dailyBuckets, memberTotals, weekSecondsFor } from "@/lib/attendance/aggregate";
+import { listSessionsByMember, listEdits, type StudySession } from "@/lib/attendance/sessions";
+import { countedSecondsBySession, dailyBuckets, memberTotals, weekSecondsFor } from "@/lib/attendance/aggregate";
 
 import { weekStart } from "@/lib/week";
 import { SUB_TEAM_COLORS, type SubTeam } from "@/lib/constants";
@@ -28,6 +28,23 @@ function fmt(ts: number) {
   });
 }
 
+/**
+ * 팀 쿼터에 걸려 깎인 기록에만 붙는 한 줄. 온전히 인정된 기록에는
+ * 아무것도 붙지 않는다 — 정상인 줄마다 배지가 붙으면 눈에 안 들어온다.
+ */
+function QuotaNote({ session, counted }: { session: StudySession; counted?: number }) {
+  if (session.ended_at === null || counted === undefined) return null;
+  const full = (session.ended_at as number) - session.started_at;
+  if (counted >= full) return null;
+  return (
+    <p className="mt-1 text-xs text-amber-700">
+      {counted === 0
+        ? "팀 주간 쿼터를 다 써서 이 기록은 인정되지 않았습니다."
+        : `팀 주간 쿼터에 걸려 ${formatDuration(counted)}만 인정되었습니다.`}
+    </p>
+  );
+}
+
 export default function MySection({ member }: { member: Member }) {
   const now = Math.floor(Date.now() / 1000);
   const sessions = listSessionsByMember(member.id);
@@ -35,6 +52,9 @@ export default function MySection({ member }: { member: Member }) {
   const totals = memberTotals()
     .find((t) => t.member.id === member.id);
   const isCapped = totals && totals.rawSeconds !== totals.countedSeconds;
+  // 쿼터에 걸려 일부만 인정된 기록을 그 자리에서 알려준다 — 총합만 줄어 있고
+  // 어느 기록이 깎였는지 모르면 규칙이 불신을 산다.
+  const countedById = countedSecondsBySession(member.id);
   const buckets = dailyBuckets(member.id, now - 26 * 7 * 86400, now);
   const weekSeconds = weekSecondsFor(sessions, weekStart(now));
   const color = SUB_TEAM_COLORS[member.sub_team as SubTeam] ?? "#2a78d6";
@@ -102,6 +122,7 @@ export default function MySection({ member }: { member: Member }) {
                 </span>
                 <DeleteSessionButton sessionId={s.id} />
               </div>
+              <QuotaNote session={s} counted={countedById.get(s.id)} />
               {s.status === "unresolved" && <UnresolvedReport sessionId={s.id} startedAt={s.started_at} />}
               {edits.length > 0 && (
                 <ul className="mt-1 text-xs text-slate-500">

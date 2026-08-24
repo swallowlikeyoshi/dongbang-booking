@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/auth";
 import { getMemberByEmail } from "@/lib/db/members";
 import MySection from "@/components/study/MySection";
+import QuotaSection from "@/components/study/QuotaSection";
 import RankingSection from "@/components/study/RankingSection";
 import TeamTotalSection from "@/components/study/TeamTotalSection";
 import TeamsSection from "@/components/study/TeamsSection";
@@ -29,6 +30,7 @@ export default async function StudyPage() {
       {/* 세 섹션을 한 페이지에 쌓되, 위에서 바로 건너뛸 수 있게 한다. */}
       <nav className="sticky top-0 z-10 -mx-4 mt-3 flex gap-4 border-b bg-white/95 px-4 py-2 text-sm backdrop-blur sm:-mx-6 sm:px-6">
         <a href="#me" className="text-blue-600">내 스터디</a>
+        <a href="#quota" className="text-blue-600">팀 쿼터</a>
         <a href="#ranking" className="text-blue-600">순위</a>
         <a href="#all" className="text-blue-600">전체</a>
         <a href="#teams" className="text-blue-600">팀 현황</a>
@@ -44,11 +46,13 @@ export default async function StudyPage() {
         <p className="mt-2 text-xs text-sky-900/70">
           카카오톡 등 인앱 브라우저로 열면 로그인이 유지되지 않습니다. 기본 카메라로 찍어주세요.
           종료를 깜빡해 10시간이 넘으면 자동 마감되며, 아래 기록에서 종료 시각을 직접 신고해야 인정됩니다.
+          세부팀마다 주간 쿼터가 있어, 팀이 그 주에 쓸 수 있는 시간을 다 쓰면 그 뒤 시간은 인정되지 않습니다.
         </p>
       </section>
 
       <div className="mt-6 space-y-6">
         <MySection member={member} />
+        <QuotaSection />
         <RankingSection me={member} isAdmin={user.isAdmin} />
         <TeamTotalSection />
         <TeamsSection />

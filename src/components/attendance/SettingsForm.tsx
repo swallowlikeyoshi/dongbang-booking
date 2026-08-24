@@ -21,9 +21,11 @@ export default function SettingsForm({ initial }: { initial: { weekly_cap_hours:
   return (
     <div className="flex flex-wrap items-end gap-4">
       <label className="block">
-        <span className="text-sm text-slate-600">주간 인정 상한(시간)</span>
+        {/* 개인 상한이 아니라 세부팀 단위 쿼터다. 팀원 시간의 합이 아니라
+            팀이 방을 점유한 시간(구간 합집합)에 걸린다. */}
+        <span className="text-sm text-slate-600">세부팀 주간 쿼터(시간)</span>
         <div className="mt-1 flex gap-2">
-          <input className="w-28 rounded border px-2 py-1" value={cap} onChange={(e) => setCap(e.target.value)} placeholder="없음" />
+          <input className="w-28 rounded border px-2 py-1" value={cap} onChange={(e) => setCap(e.target.value)} placeholder="10" />
           <button className="rounded border px-3 py-1" onClick={() => save("weekly_cap_hours", cap)}>저장</button>
         </div>
       </label>
