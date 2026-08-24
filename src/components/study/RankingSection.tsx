@@ -24,6 +24,7 @@ export default function RankingSection({
   
   const quota = getEntryQuota();
   const rows = memberTotals();
+  const myRank = me ? rows.findIndex((r) => r.member.id === me.id) + 1 : 0;
 
   return (
     <section
@@ -35,6 +36,11 @@ export default function RankingSection({
       }
     >
       {!bare && <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">순위</h2>}
+      {myRank > 0 && (
+        <p className="mt-1 text-sm text-slate-500">
+          내 순위 {myRank}위 / {rows.length}명
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         {COMPETITIONS.map((c) => (
           <span key={c} className="inline-flex items-center gap-1.5">
@@ -60,7 +66,6 @@ export default function RankingSection({
               <th className="hidden px-3 py-2 sm:table-cell">세부팀</th>
               <th className="px-2 py-2 sm:px-3">대회</th>
               <th className="px-2 py-2 text-right sm:px-3">인정 시간</th>
-              <th className="hidden px-3 py-2 text-right sm:table-cell">쿼터 적용 전</th>
             </tr>
           </thead>
           <tbody>
@@ -101,14 +106,11 @@ export default function RankingSection({
                     )}
                   </td>
                   <td className="px-2 py-2 text-right whitespace-nowrap sm:px-3">{formatDuration(r.countedSeconds)}</td>
-                  <td className="hidden px-3 py-2 text-right text-slate-400 sm:table-cell">
-                    {r.rawSeconds !== r.countedSeconds ? formatDuration(r.rawSeconds) : "—"}
-                  </td>
                 </tr>
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">아직 기록된 시간이 없습니다.</td></tr>
+              <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">아직 기록된 시간이 없습니다.</td></tr>
             )}
           </tbody>
         </table>
