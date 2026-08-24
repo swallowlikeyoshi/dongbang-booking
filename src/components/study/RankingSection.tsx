@@ -1,5 +1,5 @@
 import { memberTotals } from "@/lib/attendance/aggregate";
-import { getEntryQuota, getTeamQuotaSeconds } from "@/lib/attendance/settings";
+import { getEntryQuota } from "@/lib/attendance/settings";
 import {
   SUB_TEAM_COLORS,
   COMPETITION_ROW_TINT,
@@ -23,9 +23,7 @@ export default function RankingSection({
 }) {
   
   const quota = getEntryQuota();
-  const teamQuota = getTeamQuotaSeconds();
   const rows = memberTotals();
-  const myRank = me ? rows.findIndex((r) => r.member.id === me.id) + 1 : 0;
 
   return (
     <section
@@ -37,12 +35,6 @@ export default function RankingSection({
       }
     >
       {!bare && <h2 className="border-b border-slate-100 pb-3 text-lg font-medium">순위</h2>}
-      <p className="mt-1 text-sm text-slate-500">
-        영광 대회 엔트리 순서 기준입니다.
-        {` 세부팀마다 주 ${(teamQuota / 3600).toFixed(0)}시간까지 인정됩니다.`}
-        {myRank > 0 && ` 내 순위 ${myRank}위 / ${rows.length}명.`}
-      </p>
-
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         {COMPETITIONS.map((c) => (
           <span key={c} className="inline-flex items-center gap-1.5">

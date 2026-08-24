@@ -38,12 +38,6 @@ export default function QuotaSection() {
         </span>
       </div>
 
-      <p className="mt-1 text-sm text-slate-500">
-        세부팀마다 주 {formatDuration(quota)}까지 인정됩니다. 팀원들이 같은 시간에
-        함께 있었다면 그 시간은 한 번만 깎입니다 — 여섯 명이 여섯 시간 있었으면
-        팀이 쓴 것은 36시간이 아니라 6시간입니다.
-      </p>
-
       <ul className="mt-4 space-y-3">
         {usages.map((u) => {
           const color = SUB_TEAM_COLORS[u.team as SubTeam] ?? "#94a3b8";
@@ -93,11 +87,6 @@ export default function QuotaSection() {
           );
         })}
       </ul>
-
-      <p className="mt-4 text-xs text-slate-400">
-        과거 엑셀에서 옮겨온 기록은 세부팀장이 이미 쿼터를 맞춰 적은 값이라 이
-        계산에 들어가지 않습니다. QR로 찍은 기록만 집계합니다.
-      </p>
     </section>
   );
 }
