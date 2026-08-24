@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `used_codes_member_slot_unique` ON `used_codes` (`member_id`,`slot`);

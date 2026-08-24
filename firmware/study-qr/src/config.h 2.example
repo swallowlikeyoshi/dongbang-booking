@@ -1,0 +1,34 @@
+#pragma once
+
+// 실제 값을 채워 config.h 로 복사한다. config.h 는 커밋하지 않는다.
+#define WIFI_SSID       "heven"
+#define WIFI_PASSWORD   "..."
+
+// 서버의 ATTENDANCE_DEVICE_SECRETS 에 등록한 이 장비의 시크릿
+#define DEVICE_SECRET   "change-me"
+
+// 화면 상단에 표시할 방 이름 (ASCII만 — TFT_eSPI 기본 폰트는 한글 글리프가 없다)
+#define ROOM_NAME       "24214"
+
+// QR 에 담을 베이스 URL. 짧을수록 QR 모듈 수가 줄어 스캔이 쉬워진다.
+#define BASE_URL        "https://omo.tail0d4a7c.ts.net:8443/c/"
+
+#define HEARTBEAT_URL   "https://omo.tail0d4a7c.ts.net:8443/api/attendance/heartbeat"
+#define FIRMWARE_VER    "study-qr-1.0.0"
+
+// ── 디스플레이 배선 ────────────────────────────────────────────
+// 아래 값은 클러스터 PCB(HEVEN firmware/cluster origin/main)에서 실물 검증된 배정.
+// 전용 장비를 새로 만들 때는 그 배선에 맞춰 여기만 고치면 된다.
+#define PIN_TFT_CS      4
+#define PIN_TFT_DC      5
+#define PIN_TFT_RST     16
+#define PIN_TFT_SCLK    21
+#define PIN_TFT_MOSI    19
+
+// ILI9225 는 176x220. 0 = 세로.
+#define TFT_ORIENTATION 0
+#define SCREEN_W        176
+#define SCREEN_H        220
+#define HEADER_H        14
+#define FOOTER_H        26
+

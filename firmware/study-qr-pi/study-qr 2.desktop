@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=HEVEN Study QR
+Comment=스터디 QR 표시기
+Exec=/usr/bin/python3 %h/study-qr/qr_kiosk.py
+X-GNOME-Autostart-enabled=true

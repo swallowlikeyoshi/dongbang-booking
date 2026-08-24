@@ -25,10 +25,19 @@ function numeric(key: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** 주간 인정 시간 상한. 미설정이면 null(상한 없음). */
-export function getWeeklyCapSeconds(): number | null {
+/** 팀 주간 쿼터의 기본값. 전기팀 규칙상 세부팀당 주 10시간. */
+export const DEFAULT_TEAM_QUOTA_SECONDS = 10 * 3600;
+
+/**
+ * 세부팀 주간 쿼터(초). 미설정이면 기본 10시간.
+ *
+ * 이 값은 팀원 개개인의 상한이 아니라 **팀이 방을 점유한 시간**(구간 합집합)의
+ * 상한이다. 여섯 명이 같은 방에 여섯 시간 있었으면 팀은 6시간을 쓴 것이지
+ * 36시간을 쓴 것이 아니다. 자세한 계산은 `quota.ts` 참고.
+ */
+export function getTeamQuotaSeconds(): number {
   const hours = numeric("weekly_cap_hours");
-  return hours === null ? null : hours * 3600;
+  return hours === null ? DEFAULT_TEAM_QUOTA_SECONDS : hours * 3600;
 }
 
 /** 엔트리 정원. 순위표의 컷 라인. */

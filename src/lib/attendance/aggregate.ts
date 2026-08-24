@@ -1,6 +1,8 @@
 import { db, schema } from "@/lib/db/index";
 import { COUNTED_STATUSES, type StudySession } from "./sessions";
-import { weekStart } from "@/lib/week";
+import { studyWeekStart } from "@/lib/week";
+import { countedRegion, overlapSeconds, unionSeconds, type Interval } from "./quota";
+import { getTeamQuotaSeconds } from "./settings";
 import { SUB_TEAMS, type SubTeam } from "@/lib/constants";
 import type { Member } from "@/lib/db/members";
 
@@ -14,6 +16,32 @@ export type Ranking = {
   /** pending/approved 건수. 보정 비율 표시용. */
   adjustedCount: number;
 };
+
+/** 세부팀 한 주의 쿼터 사용 현황. */
+export type TeamWeekUsage = {
+  team: string;
+  /** 월요일 00:00 (studyWeekStart) */
+  weekStart: number;
+  /** 팀이 실제로 점유한 시간 = 구간 합집합. 상한 적용 전. */
+  unionSeconds: number;
+  /** 쿼터 안에서 인정된 시간 = min(union, quota) */
+  usedSeconds: number;
+  quotaSeconds: number;
+  /** 남은 시간. 초과했으면 0. */
+  remainingSeconds: number;
+  exceeded: boolean;
+};
+
+/**
+ * 쿼터 계산에 참여하는 세션인지.
+ *
+ * `import` 는 제외한다 — 엑셀에서 옮겨온 과거 기록으로, 세부팀장들이 이미 주당
+ * 쿼터를 맞춰서 적어둔 값이다. 게다가 시작 시각이 전부 19:00 으로 합성돼 있어
+ * 합집합을 계산하면 서로 겹쳐 실제와 무관한 숫자가 나온다. 그대로 통과시킨다.
+ */
+function participatesInQuota(row: Row): boolean {
+  return row.start_proof !== "import";
+}
 
 const COUNTED = new Set<string>(COUNTED_STATUSES);
 const ADJUSTED = new Set(["pending", "approved"]);
@@ -32,19 +60,121 @@ function countedRows(): Row[] {
     .filter((r) => COUNTED.has(r.status) && r.ended_at !== null);
 }
 
+type RegionMap = Map<string, Interval[]>;
+
+function bucketKey(team: string, weekTs: number): string {
+  return `${team}|${weekTs}`;
+}
+
+/** 팀×주마다 쿼터 안에 드는 구간을 미리 계산해 둔다. */
+function quotaRegions(rows: Row[], byId: Map<number, Member>, quota: number): RegionMap {
+  const buckets = new Map<string, Interval[]>();
+  for (const r of rows) {
+    if (!participatesInQuota(r)) continue;
+    const team = byId.get(r.member_id)?.sub_team;
+    if (!team) continue;
+    const key = bucketKey(team, studyWeekStart(r.started_at));
+    const list = buckets.get(key) ?? [];
+    list.push({ start: r.started_at, end: r.ended_at as number });
+    buckets.set(key, list);
+  }
+
+  const out: RegionMap = new Map();
+  for (const [key, intervals] of buckets) {
+    out.set(key, countedRegion(intervals, quota));
+  }
+  return out;
+}
+
+/** 세션 하나가 실제로 인정받는 초. */
+function countedSecondsFor(r: Row, byId: Map<number, Member>, regions: RegionMap): number {
+  const dur = (r.ended_at as number) - r.started_at;
+  if (!participatesInQuota(r)) return dur;
+  const team = byId.get(r.member_id)?.sub_team;
+  if (!team) return dur;
+  const region = regions.get(bucketKey(team, studyWeekStart(r.started_at)));
+  if (!region) return dur;
+  return overlapSeconds({ start: r.started_at, end: r.ended_at as number }, region);
+}
+
 /**
- * 멤버별 누적 시간. `weeklyCapSeconds` 를 주면 주 단위로 상한을 적용하되
- * 상한 전 시간(`rawSeconds`)도 함께 반환한다 — 깎인 이유가 화면에서 납득되어야 한다.
+ * 세션 id → 실제 인정된 초.
+ *
+ * 쿼터 경계에 걸려 일부만 인정된 기록을 화면에 그대로 보여주기 위해 쓴다.
+ * "왜 3시간 있었는데 1시간만 들어갔지?"에 답할 수 없으면 규칙이 불신을 산다.
  */
-export function memberTotals(opts?: { weeklyCapSeconds?: number }): Ranking[] {
+export function countedSecondsBySession(memberId: number, opts?: { quotaSeconds?: number }): Map<number, number> {
+  const members = db.select().from(schema.members).all();
+  const byId = new Map(members.map((m) => [m.id, m]));
+  const rows = countedRows();
+  const quota = opts?.quotaSeconds ?? getTeamQuotaSeconds();
+  const regions = quotaRegions(rows, byId, quota);
+
+  const out = new Map<number, number>();
+  for (const r of rows) {
+    if (r.member_id !== memberId) continue;
+    out.set(r.id, countedSecondsFor(r, byId, regions));
+  }
+  return out;
+}
+
+/**
+ * 세부팀별 이번 주(또는 지정한 주) 쿼터 사용 현황.
+ * 화면에 "이번 주 남은 시간"을 띄우는 데 쓴다.
+ */
+export function teamWeekUsage(weekTs: number, opts?: { quotaSeconds?: number }): TeamWeekUsage[] {
+  const members = db.select().from(schema.members).all();
+  const byId = new Map(members.map((m) => [m.id, m]));
+  const quota = opts?.quotaSeconds ?? getTeamQuotaSeconds();
+
+  const buckets = new Map<string, Interval[]>();
+  for (const t of SUB_TEAMS) buckets.set(t, []);
+
+  for (const r of countedRows()) {
+    if (!participatesInQuota(r)) continue;
+    if (studyWeekStart(r.started_at) !== weekTs) continue;
+    const team = byId.get(r.member_id)?.sub_team;
+    if (!team || !buckets.has(team)) continue;
+    buckets.get(team)!.push({ start: r.started_at, end: r.ended_at as number });
+  }
+
+  return SUB_TEAMS.map((team) => {
+    const union = unionSeconds(buckets.get(team) ?? []);
+    const used = Math.min(union, quota);
+    return {
+      team,
+      weekStart: weekTs,
+      unionSeconds: union,
+      usedSeconds: used,
+      quotaSeconds: quota,
+      remainingSeconds: Math.max(0, quota - union),
+      exceeded: union > quota,
+    };
+  });
+}
+
+/**
+ * 멤버별 누적 시간.
+ *
+ * 개인 인정 시간은 자기 시간 그대로다. 다만 소속 세부팀이 그 주의 쿼터를 다 쓴
+ * 뒤의 시간은 빠진다 — 그 경계에 걸친 세션은 "일부만 인정"된다.
+ * 상한 전 시간(`rawSeconds`)도 함께 반환한다: 깎인 이유가 화면에서 납득되어야 한다.
+ */
+export function memberTotals(opts?: { quotaSeconds?: number }): Ranking[] {
   const members = db.select().from(schema.members).all();
   const byId = new Map(members.map((m) => [m.id, m]));
   const rows = countedRows();
 
   const raw = new Map<number, number>();
-  const perWeek = new Map<number, Map<number, number>>();
+  const counted = new Map<number, number>();
   const count = new Map<number, number>();
   const adjusted = new Map<number, number>();
+
+  // 팀×주 단위로 인정 구간을 먼저 구한다. 개인 인정 시간은 자기 세션이 그
+  // 구간과 겹치는 만큼이다 — 쿼터가 바닥나기 전이면 제 시간 전부를 받고,
+  // 바닥난 뒤 시간만 빠진다.
+  const quota = opts?.quotaSeconds ?? getTeamQuotaSeconds();
+  const regions = quotaRegions(rows, byId, quota);
 
   for (const r of rows) {
     const dur = (r.ended_at as number) - r.started_at;
@@ -52,10 +182,7 @@ export function memberTotals(opts?: { weeklyCapSeconds?: number }): Ranking[] {
     count.set(r.member_id, (count.get(r.member_id) ?? 0) + 1);
     if (ADJUSTED.has(r.status)) adjusted.set(r.member_id, (adjusted.get(r.member_id) ?? 0) + 1);
 
-    const w = weekStart(r.started_at);
-    const weeks = perWeek.get(r.member_id) ?? new Map<number, number>();
-    weeks.set(w, (weeks.get(w) ?? 0) + dur);
-    perWeek.set(r.member_id, weeks);
+    counted.set(r.member_id, (counted.get(r.member_id) ?? 0) + countedSecondsFor(r, byId, regions));
   }
 
   const out: Ranking[] = [];
@@ -64,14 +191,7 @@ export function memberTotals(opts?: { weeklyCapSeconds?: number }): Ranking[] {
   for (const member of members) {
     const memberId = member.id;
     const rawSeconds = raw.get(memberId) ?? 0;
-    let countedSeconds = rawSeconds;
-    const cap = opts?.weeklyCapSeconds;
-    if (cap && cap > 0) {
-      countedSeconds = 0;
-      for (const sec of perWeek.get(memberId)?.values() ?? []) {
-        countedSeconds += Math.min(sec, cap);
-      }
-    }
+    const countedSeconds = counted.get(memberId) ?? 0;
     out.push({
       member,
       rawSeconds,
